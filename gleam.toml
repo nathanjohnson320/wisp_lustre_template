@@ -1,0 +1,24 @@
+name = "game_cal"
+version = "0.1.0"
+description = "A Gleam project"
+
+# Fill out these fields if you intend to generate HTML documentation or publish
+# your project to the Hex package manager.
+#
+# licences = ["Apache-2.0"]
+# repository = { type = "github", user = "username", repo = "project" }
+# links = [{ title = "Website", href = "https://gleam.run" }]
+
+[dependencies]
+gleam_stdlib = "~> 0.37"
+wisp = "~> 0.14"
+lustre = "~> 4.2"
+mist = "~> 1.0"
+gleam_http = "~> 3.6"
+gleam_erlang = "~> 0.25"
+dot_env = "~> 0.5"
+gleam_json = "~> 1.0"
+
+[dev-dependencies]
+gleeunit = "~> 1.0.2"
+lustre_dev_tools = ">= 1.2.2 and < 2.0.0"

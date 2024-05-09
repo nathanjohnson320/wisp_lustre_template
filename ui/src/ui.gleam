@@ -9,10 +9,8 @@ import lustre/effect.{type Effect}
 import lustre/element.{type Element}
 import lustre/element/html
 import lustre/event
-import lustre/ui
-import lustre/ui/layout/cluster
-import lustre/ui/util/cn
 import modem
+import pages/home
 
 // MAIN ------------------------------------------------------------------------
 
@@ -29,7 +27,6 @@ type Model {
 
 type Route {
   Home
-  WelcomeGuest(value: String)
 }
 
 type Guest {
@@ -52,7 +49,6 @@ fn init(_flags) -> #(Model, Effect(Msg)) {
 
 fn on_route_change(uri: Uri) -> Msg {
   case uri.path_segments(uri.path) {
-    ["welcome", guest] -> OnRouteChange(WelcomeGuest(guest))
     _ -> OnRouteChange(Home)
   }
 }
@@ -89,14 +85,11 @@ fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
 // VIEW ------------------------------------------------------------------------
 
 fn view(model: Model) -> Element(Msg) {
-  let styles = [#("margin", "15vh")]
-
   let page = case model.current_route {
-    Home -> view_home(model)
-    WelcomeGuest(name) -> view_welcome(model, name)
+    Home -> element.map(home.root(model), HomeMsg)
   }
 
-  ui.stack([attribute.style(styles)], [view_nav(model), page])
+  layout([page])
 }
 
 fn view_home(model: Model) {

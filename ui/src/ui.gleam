@@ -1,14 +1,9 @@
-import gleam/dynamic
-import gleam/list
-import gleam/result
-import gleam/string
 import gleam/uri.{type Uri}
 import lustre
 import lustre/attribute
 import lustre/effect.{type Effect}
 import lustre/element.{type Element}
 import lustre/element/html
-import lustre/event
 import modem
 import pages/home
 
@@ -22,29 +17,15 @@ pub fn main() {
 // MODEL -----------------------------------------------------------------------
 
 type Model {
-  Model(current_route: Route, guests: List(Guest), new_guest_name: String)
+  Model(current_route: Route, home: home.Model)
 }
 
 type Route {
   Home
 }
 
-type Guest {
-  Guest(slug: String, name: String)
-}
-
 fn init(_flags) -> #(Model, Effect(Msg)) {
-  #(
-    Model(
-      current_route: Home,
-      guests: [
-        Guest(slug: "chihiro", name: "Chihiro"),
-        Guest(slug: "totoro", name: "Totoro"),
-      ],
-      new_guest_name: "",
-    ),
-    modem.init(on_route_change),
-  )
+  #(Model(current_route: Home, home: home.init()), modem.init(on_route_change))
 }
 
 fn on_route_change(uri: Uri) -> Msg {
@@ -57,8 +38,7 @@ fn on_route_change(uri: Uri) -> Msg {
 
 pub opaque type Msg {
   OnRouteChange(Route)
-  UserUpdatedNewGuestName(String)
-  UserAddedNewGuest(Guest)
+  HomeMsg(home.Msg)
 }
 
 fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
@@ -67,18 +47,10 @@ fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
       Model(..model, current_route: route),
       effect.none(),
     )
-    UserUpdatedNewGuestName(name) -> #(
-      Model(..model, new_guest_name: name),
-      effect.none(),
-    )
-    UserAddedNewGuest(guest) -> #(
-      Model(
-        ..model,
-        guests: list.append(model.guests, [guest]),
-        new_guest_name: "",
-      ),
-      effect.none(),
-    )
+    HomeMsg(home_msg) -> {
+      let #(home_model, home_effect) = home.update(home_msg, model.home)
+      #(Model(..model, home: home_model), effect.map(home_effect, HomeMsg))
+    }
   }
 }
 
@@ -86,77 +58,25 @@ fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
 
 fn view(model: Model) -> Element(Msg) {
   let page = case model.current_route {
-    Home -> element.map(home.root(model), HomeMsg)
+    Home ->
+      model.home
+      |> home.view()
+      |> element.map(HomeMsg)
   }
 
   layout([page])
 }
 
-fn view_home(model: Model) {
-  let new_guest_input = fn(event) {
-    use key_code <- result.try(dynamic.field("key", dynamic.string)(event))
-    case key_code {
-      "Enter" -> {
-        let guest_slug =
-          model.new_guest_name
-          |> string.replace(" ", "-")
-          |> string.lowercase
-        Ok(
-          UserAddedNewGuest(Guest(name: model.new_guest_name, slug: guest_slug)),
-        )
-      }
-      _ -> {
-        use value <- result.try(event.value(event))
-        Ok(UserUpdatedNewGuestName(value))
-      }
-    }
-  }
-
-  view_body([
-    view_title("Welcome to the Party 🏡"),
-    html.p([], [element.text("Please sign the guest book:")]),
-    ui.input([
-      event.on("keyup", new_guest_input),
-      attribute.value(model.new_guest_name),
+pub fn layout(elements: List(Element(t))) -> Element(t) {
+  html.html([], [
+    html.head([], [
+      html.title([], "Todo App in Gleam"),
+      html.meta([
+        attribute.name("viewport"),
+        attribute.attribute("content", "width=device-width, initial-scale=1"),
+      ]),
+      html.link([attribute.rel("stylesheet"), attribute.href("/static/app.css")]),
     ]),
+    html.body([], elements),
   ])
-}
-
-fn view_welcome(model: Model, slug) -> Element(a) {
-  let guest =
-    model.guests
-    |> list.find(fn(guest: Guest) { guest.slug == slug })
-
-  let title = case guest {
-    Ok(guest) -> view_title("Hello, " <> guest.name <> "! 🎉")
-    _ -> view_title("Sorry ... didn't quite catch that.")
-  }
-
-  view_body([title])
-}
-
-fn view_nav(model: Model) -> Element(a) {
-  let item_styles = [#("text-decoration", "underline")]
-
-  let view_nav_item = fn(path, text) {
-    html.a([attribute.href("/" <> path), attribute.style(item_styles)], [
-      element.text(text),
-    ])
-  }
-
-  let guest_nav_items =
-    model.guests
-    |> list.map(fn(guest: Guest) {
-      view_nav_item("welcome/" <> guest.slug, guest.name)
-    })
-
-  cluster.of(html.nav, [], [view_nav_item("", "Home"), ..guest_nav_items])
-}
-
-fn view_body(children) {
-  ui.centre([cn.mt_xl()], ui.stack([], children))
-}
-
-fn view_title(text) {
-  html.h1([cn.text_xl()], [element.text(text)])
 }

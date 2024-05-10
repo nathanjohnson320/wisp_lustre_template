@@ -1,15 +1,32 @@
 import gleam/list
 import gleam/option.{None, Some}
 import lustre/attribute.{autofocus, class, name, placeholder}
+import lustre/effect.{type Effect}
 import lustre/element.{type Element, text}
 import lustre/element/html.{button, div, form, h1, input, span, svg}
 import lustre/element/svg
 import models/item.{type Item, Completed, Uncompleted}
 
-pub fn root(items: List(Item)) -> Element(t) {
+pub type Model {
+  Model(items: List(Item))
+}
+
+pub opaque type Msg
+
+pub fn init() -> Model {
+  Model(items: [])
+}
+
+pub fn update(msg: Msg, model: Model) -> #(Model, Effect(Msg)) {
+  case msg {
+    _ -> #(model, effect.none())
+  }
+}
+
+pub fn view(model: Model) -> Element(t) {
   div([class("app")], [
     h1([class("app-title")], [text("Todo App")]),
-    todos(items),
+    todos(model.items),
   ])
 }
 

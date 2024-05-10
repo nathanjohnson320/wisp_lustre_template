@@ -46,4 +46,4 @@ gleeunit = { version = ">= 1.0.0 and < 2.0.0" }
 lustre = { version = ">= 4.2.0 and < 5.0.0" }
 lustre_dev_tools = { version = ">= 1.2.3 and < 2.0.0" }
 lustre_ui = { version = ">= 0.6.0 and < 1.0.0" }
-modem = { version = ">= 1.0.0 and < 2.0.0"}
+modem = { version = ">= 1.0.0 and < 2.0.0" }

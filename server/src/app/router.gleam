@@ -1,23 +1,12 @@
-import app/pages
-import app/pages/layout.{layout}
 import app/routes/items_routes.{items_middleware}
 import app/web.{type Context}
 import gleam/http
-import lustre/element
 import wisp.{type Request, type Response}
 
 pub fn handle_request(req: Request, ctx: Context) -> Response {
   use _req <- web.middleware(req, ctx)
   use ctx <- items_middleware(req, ctx)
   case wisp.path_segments(req) {
-    // Homepage
-    [] -> {
-      [pages.home(ctx.items)]
-      |> layout
-      |> element.to_document_string_builder
-      |> wisp.html_response(200)
-    }
-
     ["items", "create"] -> {
       use <- wisp.require_method(req, http.Post)
       items_routes.post_create_item(req, ctx)

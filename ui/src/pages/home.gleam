@@ -5,21 +5,55 @@ import lustre/effect.{type Effect}
 import lustre/element.{type Element, text}
 import lustre/element/html.{button, div, form, h1, input, span, svg}
 import lustre/element/svg
-import models/item.{type Item, Completed, Uncompleted}
+import models/item.{type Item, Completed, Item, Uncompleted}
 
 pub type Model {
-  Model(items: List(Item))
+  Model(api_host: String, items: List(Item))
 }
 
-pub opaque type Msg
+pub opaque type Msg {
+  CreateItem(String)
+  DeleteItem(String)
+  CompleteItem(String)
+}
 
-pub fn init() -> Model {
-  Model(items: [])
+pub fn init(api_host: String) -> Model {
+  Model(api_host: api_host, items: [])
 }
 
 pub fn update(msg: Msg, model: Model) -> #(Model, Effect(Msg)) {
   case msg {
-    _ -> #(model, effect.none())
+    CreateItem(title) -> {
+      let new_item = Item(id: None, title: title, status: Uncompleted)
+      #(Model(..model, items: [new_item, ..model.items]), effect.none())
+    }
+    DeleteItem(id) -> {
+      let new_items =
+        model.items
+        |> list.filter(fn(item) {
+          case item.id {
+            Some(item_id) -> item_id != id
+            None -> True
+          }
+        })
+      #(Model(..model, items: new_items), effect.none())
+    }
+    CompleteItem(id) -> {
+      let new_items =
+        model.items
+        |> list.map(fn(item) {
+          case item.id {
+            Some(item_id) -> {
+              case item_id == id {
+                True -> Item(id: item.id, title: item.title, status: Completed)
+                False -> item
+              }
+            }
+            None -> item
+          }
+        })
+      #(Model(..model, items: new_items), effect.none())
+    }
   }
 }
 

@@ -1,17 +1,17 @@
 import lustre/attribute
 import lustre/element.{type Element}
-import lustre/element/html
+import lustre/element/html.{html, head, title, meta, link, body}
 
 pub fn layout(elements: List(Element(t))) -> Element(t) {
-  html.html([], [
-    html.head([], [
-      html.title([], "Todo App in Gleam"),
-      html.meta([
+  html([], [
+    head([], [
+      title([], "Todo App in Gleam"),
+      meta([
         attribute.name("viewport"),
         attribute.attribute("content", "width=device-width, initial-scale=1"),
       ]),
-      html.link([attribute.rel("stylesheet"), attribute.href("/static/app.css")]),
+      link([attribute.rel("stylesheet"), attribute.href("/static/app.css")]),
     ]),
-    html.body([], elements),
+    body([], elements),
   ])
 }

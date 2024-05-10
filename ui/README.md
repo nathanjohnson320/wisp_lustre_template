@@ -20,7 +20,6 @@ Further documentation can be found at <https://hexdocs.pm/ui>.
 ## Development
 
 ```sh
-gleam run -m lustre/dev start
-gleam test  # Run the tests
-gleam shell # Run an Erlang shell
+npm i
+npm run dev
 ```

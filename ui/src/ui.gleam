@@ -1,6 +1,5 @@
 import gleam/uri.{type Uri}
 import lustre
-import lustre/attribute
 import lustre/effect.{type Effect}
 import lustre/element.{type Element}
 import lustre/element/html
@@ -11,21 +10,29 @@ import pages/home
 
 pub fn main() {
   let app = lustre.application(init, update, view)
-  let assert Ok(_) = lustre.start(app, "#app", Nil)
+  let assert Ok(_) = lustre.start(app, "#app", Flags("http://localhost:8000"))
 }
 
 // MODEL -----------------------------------------------------------------------
 
 type Model {
-  Model(current_route: Route, home: home.Model)
+  Model(current_route: Route, api_host: String, home: home.Model)
 }
 
 type Route {
   Home
 }
 
-fn init(_flags) -> #(Model, Effect(Msg)) {
-  #(Model(current_route: Home, home: home.init()), modem.init(on_route_change))
+type Flags {
+  Flags(api_host: String)
+}
+
+fn init(flags: Flags) -> #(Model, Effect(Msg)) {
+  let api_host = flags.api_host
+  #(
+    Model(current_route: Home, api_host: api_host, home: home.init(api_host)),
+    modem.init(on_route_change),
+  )
 }
 
 fn on_route_change(uri: Uri) -> Msg {
@@ -68,15 +75,5 @@ fn view(model: Model) -> Element(Msg) {
 }
 
 pub fn layout(elements: List(Element(t))) -> Element(t) {
-  html.html([], [
-    html.head([], [
-      html.title([], "Todo App in Gleam"),
-      html.meta([
-        attribute.name("viewport"),
-        attribute.attribute("content", "width=device-width, initial-scale=1"),
-      ]),
-      html.link([attribute.rel("stylesheet"), attribute.href("/static/app.css")]),
-    ]),
-    html.body([], elements),
-  ])
+  html.main([], elements)
 }

@@ -1,4 +1,4 @@
-import gleam/option.{type Option}
+import gleam/option.{type Option, None}
 
 pub type ItemStatus {
   Completed
@@ -7,6 +7,10 @@ pub type ItemStatus {
 
 pub type Item {
   Item(id: Option(String), title: String, status: ItemStatus)
+}
+
+pub fn default() -> Item {
+  Item(id: None, title: "", status: Uncompleted)
 }
 
 pub fn create_item(id: Option(String), title: String, completed: Bool) -> Item {

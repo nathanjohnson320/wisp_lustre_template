@@ -5,27 +5,41 @@ import lustre/effect.{type Effect}
 import lustre/element.{type Element, text}
 import lustre/element/html.{button, div, form, h1, input, span, svg}
 import lustre/element/svg
+import lustre/event
 import models/item.{type Item, Completed, Item, Uncompleted}
 
 pub type Model {
-  Model(api_host: String, items: List(Item))
+  Model(api_host: String, current_item: Item, items: List(Item))
 }
 
 pub opaque type Msg {
-  CreateItem(String)
+  SetTitle(String)
+  CreateItem
   DeleteItem(String)
   CompleteItem(String)
 }
 
 pub fn init(api_host: String) -> Model {
-  Model(api_host: api_host, items: [])
+  Model(api_host: api_host, current_item: item.default(), items: [])
 }
 
 pub fn update(msg: Msg, model: Model) -> #(Model, Effect(Msg)) {
   case msg {
-    CreateItem(title) -> {
-      let new_item = Item(id: None, title: title, status: Uncompleted)
-      #(Model(..model, items: [new_item, ..model.items]), effect.none())
+    SetTitle(title) -> {
+      #(
+        Model(..model, current_item: Item(..model.current_item, title: title)),
+        effect.none(),
+      )
+    }
+    CreateItem -> {
+      #(
+        Model(
+          ..model,
+          current_item: item.default(),
+          items: [model.current_item, ..model.items],
+        ),
+        effect.none(),
+      )
     }
     DeleteItem(id) -> {
       let new_items =
@@ -57,20 +71,20 @@ pub fn update(msg: Msg, model: Model) -> #(Model, Effect(Msg)) {
   }
 }
 
-pub fn view(model: Model) -> Element(t) {
+pub fn view(model: Model) -> Element(Msg) {
   div([class("app")], [
     h1([class("app-title")], [text("Todo App")]),
-    todos(model.items),
+    todos(model),
   ])
 }
 
-fn todos(items: List(Item)) -> Element(t) {
+fn todos(model: Model) -> Element(Msg) {
   div([class("todos")], [
-    todos_input(),
+    todos_input(model),
     div([class("todos__inner")], [
       div(
         [class("todos__list")],
-        items
+        model.items
           |> list.map(item),
       ),
       todos_empty(),
@@ -78,12 +92,13 @@ fn todos(items: List(Item)) -> Element(t) {
   ])
 }
 
-fn todos_input() -> Element(t) {
+fn todos_input(model: Model) -> Element(Msg) {
   form(
     [
       class("add-todo-input"),
       attribute.method("POST"),
       attribute.action("/items/create"),
+      event.on_submit(CreateItem),
     ],
     [
       input([
@@ -91,12 +106,14 @@ fn todos_input() -> Element(t) {
         class("add-todo-input__input"),
         placeholder("What needs to be done?"),
         autofocus(True),
+        attribute.value(model.current_item.title),
+        event.on_input(SetTitle),
       ]),
     ],
   )
 }
 
-fn item(item: Item) -> Element(t) {
+fn item(item: Item) -> Element(Msg) {
   let completed_class: String = {
     case item.status {
       Completed -> "todo--completed"
@@ -119,13 +136,9 @@ fn item(item: Item) -> Element(t) {
       ),
       span([class("todo__title")], [text(item.title)]),
     ]),
-    form(
-      [
-        attribute.method("POST"),
-        attribute.action("/items/" <> item_id <> "?_method=DELETE"),
-      ],
-      [button([class("todo__delete")], [svg_icon_delete()])],
-    ),
+    button([class("todo__delete"), event.on_submit(DeleteItem(item_id))], [
+      svg_icon_delete(),
+    ]),
   ])
 }
 

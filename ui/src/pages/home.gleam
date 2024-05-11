@@ -1,3 +1,4 @@
+import config.{type Config}
 import gleam/list
 import gleam/option.{None, Some}
 import lustre/attribute.{autofocus, class, name, placeholder}
@@ -6,25 +7,37 @@ import lustre/element.{type Element, text}
 import lustre/element/html.{button, div, form, h1, input, span, svg}
 import lustre/element/svg
 import lustre/event
+import lustre_http.{type HttpError}
 import models/item.{type Item, Completed, Item, Uncompleted}
 
 pub type Model {
-  Model(api_host: String, current_item: Item, items: List(Item))
+  Model(config: Config, current_item: Item, items: List(Item))
 }
 
 pub opaque type Msg {
+  GotItems(Result(List(Item), HttpError))
   SetTitle(String)
   CreateItem
   DeleteItem(String)
   CompleteItem(String)
 }
 
-pub fn init(api_host: String) -> Model {
-  Model(api_host: api_host, current_item: item.default(), items: [])
+pub fn init(config: Config) -> Model {
+  Model(config: config, current_item: item.default(), items: [])
+}
+
+pub fn on_load(config: Config) -> Effect(Msg) {
+  effect.batch([item.list_items(config, GotItems)])
 }
 
 pub fn update(msg: Msg, model: Model) -> #(Model, Effect(Msg)) {
   case msg {
+    GotItems(Ok(items)) -> {
+      #(Model(..model, items: items), effect.none())
+    }
+    GotItems(_) -> {
+      #(model, effect.none())
+    }
     SetTitle(title) -> {
       #(
         Model(..model, current_item: Item(..model.current_item, title: title)),

@@ -7,6 +7,10 @@ pub fn handle_request(req: Request, ctx: Context) -> Response {
   use _req <- web.middleware(req, ctx)
   use ctx <- items_middleware(req, ctx)
   case wisp.path_segments(req) {
+    ["items"] -> {
+      use <- wisp.require_method(req, http.Get)
+      items_routes.list_items(req, ctx)
+    }
     ["items", "create"] -> {
       use <- wisp.require_method(req, http.Post)
       items_routes.post_create_item(req, ctx)

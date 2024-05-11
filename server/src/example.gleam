@@ -26,6 +26,6 @@ pub fn main() {
 }
 
 fn static_directory() {
-  let assert Ok(priv_directory) = wisp.priv_directory("game_cal")
+  let assert Ok(priv_directory) = wisp.priv_directory("example")
   priv_directory <> "/static"
 }

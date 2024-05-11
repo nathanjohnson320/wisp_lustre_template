@@ -8,6 +8,11 @@ import gleam/result
 import gleam/string
 import wisp.{type Request, type Response}
 
+pub fn list_items(req: Request, ctx: Context) {
+  let current_items = ctx.items
+  todos_to_json(current_items)
+}
+
 pub fn post_create_item(req: Request, ctx: Context) {
   use form <- wisp.require_form(req)
 

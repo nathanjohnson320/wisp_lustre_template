@@ -4,6 +4,7 @@ import dot_env
 import dot_env/env
 import gleam/erlang/process
 import mist
+import sqlight
 import wisp
 
 pub fn main() {
@@ -12,7 +13,8 @@ pub fn main() {
 
   let assert Ok(secret_key_base) = env.get("SECRET_KEY_BASE")
 
-  let ctx = Context(static_directory: static_directory(), items: [])
+  use repo <- sqlight.with_connection(":memory:")
+  let ctx = Context(static_directory: static_directory(), repo: conn)
 
   let handler = router.handle_request(_, ctx)
 

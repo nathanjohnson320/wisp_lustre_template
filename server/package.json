@@ -1,0 +1,11 @@
+{
+  "scripts": {
+    "db:up": "dbmate up",
+    "db:down": "dbmate down",
+    "db:new": "dbmate new",
+    "db:status": "dbmate status"
+  },
+  "devDependencies": {
+    "dbmate": "^2.15.0"
+  }
+}

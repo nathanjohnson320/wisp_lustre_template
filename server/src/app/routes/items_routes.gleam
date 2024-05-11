@@ -5,12 +5,21 @@ import gleam/json
 import gleam/list
 import gleam/option.{None, Some}
 import gleam/result
-import gleam/string
+import gleam/string_builder.{type StringBuilder}
+import sqlight
 import wisp.{type Request, type Response}
 
-pub fn list_items(req: Request, ctx: Context) {
-  let current_items = ctx.items
-  todos_to_json(current_items)
+pub fn list_items(_req: Request, ctx: Context) {
+  let sql =
+    "
+    SELECT id, title, completed
+    FROM items
+  "
+  let current_items = sqlight.query(sql, ctx.repo, [], item.from_db())
+
+  current_items
+  |> todos_to_json()
+  |> wisp.json_response(200)
 }
 
 pub fn post_create_item(req: Request, ctx: Context) {
@@ -27,9 +36,8 @@ pub fn post_create_item(req: Request, ctx: Context) {
   }
 
   case result {
-    Ok(todos) -> {
+    Ok(_todos) -> {
       wisp.redirect("/")
-      |> wisp.set_cookie(req, "items", todos, wisp.PlainText, 60 * 60 * 24)
     }
     Error(_) -> {
       wisp.bad_request()
@@ -37,18 +45,17 @@ pub fn post_create_item(req: Request, ctx: Context) {
   }
 }
 
-pub fn delete_item(req: Request, ctx: Context, item_id: String) {
+pub fn delete_item(_req: Request, ctx: Context, item_id: String) {
   let current_items = ctx.items
 
-  let json_items = {
+  let _json_items = {
     list.filter(current_items, fn(item) { item.id != item_id })
     |> todos_to_json
   }
   wisp.redirect("/")
-  |> wisp.set_cookie(req, "items", json_items, wisp.PlainText, 60 * 60 * 24)
 }
 
-pub fn patch_toggle_todo(req: Request, ctx: Context, item_id: String) {
+pub fn patch_toggle_todo(_req: Request, ctx: Context, item_id: String) {
   let current_items = ctx.items
 
   let result = {
@@ -66,28 +73,23 @@ pub fn patch_toggle_todo(req: Request, ctx: Context, item_id: String) {
   }
 
   case result {
-    Ok(json_items) ->
-      wisp.redirect("/")
-      |> wisp.set_cookie(req, "items", json_items, wisp.PlainText, 60 * 60 * 24)
+    Ok(_json_items) -> wisp.redirect("/")
+
     Error(_) -> wisp.bad_request()
   }
 }
 
-fn todos_to_json(items: List(Item)) -> String {
-  "["
-  <> items
-  |> list.map(item_to_json)
-  |> string.join(",")
-  <> "]"
+fn todos_to_json(items: List(Item)) -> StringBuilder {
+  json.array(items, item_encoder)
+  |> json.to_string_builder()
 }
 
-fn item_to_json(item: Item) -> String {
+fn item_encoder(item: Item) -> json.Json {
   json.object([
     #("id", json.string(item.id)),
     #("title", json.string(item.title)),
     #("completed", json.bool(item.item_status_to_bool(item.status))),
   ])
-  |> json.to_string
 }
 
 type ItemsJson {

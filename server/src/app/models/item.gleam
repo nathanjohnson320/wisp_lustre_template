@@ -1,3 +1,4 @@
+import gleam/dynamic
 import gleam/option.{type Option}
 import wisp
 
@@ -8,6 +9,11 @@ pub type ItemStatus {
 
 pub type Item {
   Item(id: String, title: String, status: ItemStatus)
+}
+
+pub fn from_db() -> fn(dynamic.Dynamic) ->
+  Result(#(Int, String, String), List(dynamic.DecodeError)) {
+  dynamic.tuple3(dynamic.int, dynamic.string, dynamic.string)
 }
 
 pub fn create_item(id: Option(String), title: String, completed: Bool) -> Item {

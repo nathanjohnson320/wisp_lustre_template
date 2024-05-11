@@ -1,10 +1,23 @@
-import app/models/item.{type Item}
+import cors_builder as cors
 import gleam/bool
+import gleam/http
 import gleam/string_builder
+import sqlight
 import wisp
 
+fn cors() {
+  cors.new()
+  |> cors.allow_origin("http://localhost:5173")
+  |> cors.allow_origin("http://127.0.0.1:5173")
+  |> cors.allow_method(http.Get)
+  |> cors.allow_method(http.Post)
+  |> cors.allow_method(http.Put)
+  |> cors.allow_method(http.Patch)
+  |> cors.allow_method(http.Delete)
+}
+
 pub type Context {
-  Context(static_directory: String, items: List(Item))
+  Context(static_directory: String, repo: sqlight.Connection)
 }
 
 pub fn middleware(
@@ -13,6 +26,7 @@ pub fn middleware(
   handle_request: fn(wisp.Request) -> wisp.Response,
 ) -> wisp.Response {
   let req = wisp.method_override(req)
+  use req <- cors.wisp_handle(req, cors())
   use <- wisp.serve_static(req, under: "/static", from: ctx.static_directory)
   use <- wisp.log_request(req)
   use <- wisp.rescue_crashes

@@ -1,5 +1,4 @@
 import config.{type Config}
-import gleam/io
 import gleam/list
 import lustre/attribute.{autofocus, class, name, placeholder}
 import lustre/effect.{type Effect}
@@ -17,6 +16,7 @@ pub type Model {
 pub opaque type Msg {
   GotItems(Result(List(Item), HttpError))
   CreatedItem(Result(Item, HttpError))
+  DeletedItem(Result(Item, HttpError))
   SetTitle(String)
   CreateItem
   DeleteItem(String)
@@ -42,6 +42,19 @@ pub fn update(msg: Msg, model: Model) -> #(Model, Effect(Msg)) {
     CreatedItem(Ok(item)) -> {
       #(Model(..model, items: [item, ..model.items]), effect.none())
     }
+    DeletedItem(Ok(item)) -> {
+      #(
+        Model(
+          ..model,
+          items: model.items
+            |> list.filter(fn(i) { i.id != item.id }),
+        ),
+        effect.none(),
+      )
+    }
+    DeletedItem(_) -> {
+      #(model, effect.none())
+    }
     CreatedItem(_) -> {
       #(model, effect.none())
     }
@@ -57,8 +70,8 @@ pub fn update(msg: Msg, model: Model) -> #(Model, Effect(Msg)) {
         item.create_item(model.config, model.current_item, CreatedItem),
       )
     }
-    DeleteItem(_id) -> {
-      #(Model(..model, items: []), effect.none())
+    DeleteItem(id) -> {
+      #(model, item.delete_item(model.config, id, DeletedItem))
     }
     CompleteItem(_id) -> {
       #(Model(..model, items: []), effect.none())
@@ -127,7 +140,7 @@ fn item(item: Item) -> Element(Msg) {
       ),
       span([class("todo__title")], [text(item.title)]),
     ]),
-    button([class("todo__delete"), event.on_submit(DeleteItem(item.id))], [
+    button([class("todo__delete"), event.on_click(DeleteItem(item.id))], [
       svg_icon_delete(),
     ]),
   ])

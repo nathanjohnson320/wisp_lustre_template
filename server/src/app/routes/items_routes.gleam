@@ -69,13 +69,31 @@ pub fn post_create_item(req: Request, ctx: Context) {
   }
 }
 
-pub fn delete_item(_req: Request, _ctx: Context, item_id: String) {
-  let current_items: List(Item) = []
+pub fn delete_item(_req: Request, ctx: Context, item_id: String) {
+  let sql =
+    "
+      DELETE FROM items WHERE id = ?
+      RETURNING *
+    "
+  let result =
+    sqlight.query(sql, ctx.repo, [sqlight.text(item_id)], item.from_db())
+    |> result.map_error(fn(e) {
+      io.debug(e)
+      []
+    })
 
-  let _json_items = {
-    list.filter(current_items, fn(item) { item.id != item_id })
+  case result {
+    Ok([#(id, title, status)]) -> {
+      #(id, title, status)
+      |> item.todo_to_json
+      |> wisp.json_response(200)
+    }
+    Ok(_) -> wisp.not_found()
+    Error(e) -> {
+      io.debug(e)
+      wisp.bad_request()
+    }
   }
-  wisp.redirect("/")
 }
 
 pub fn patch_toggle_todo(_req: Request, _ctx: Context, item_id: String) {

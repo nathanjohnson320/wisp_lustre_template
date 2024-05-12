@@ -1,7 +1,10 @@
 import api
 import config.{type Config}
 import gleam/dynamic
+import gleam/http
+import gleam/http/request
 import gleam/json
+import gleam/result
 import lustre/effect.{type Effect}
 import lustre_http.{type HttpError}
 
@@ -85,4 +88,20 @@ pub fn create_item(
   config
   |> api.url("items")
   |> lustre_http.post(body, lustre_http.expect_json(decoder(), msg))
+}
+
+pub fn delete_item(
+  config: Config,
+  item_id: String,
+  msg: fn(Result(Item, HttpError)) -> t,
+) -> Effect(t) {
+  let url = api.url(config, "items" <> "/" <> item_id)
+  let req =
+    url
+    |> request.to()
+    |> result.unwrap(request.new())
+
+  req
+  |> request.set_method(http.Delete)
+  |> lustre_http.send(lustre_http.expect_json(decoder(), msg))
 }

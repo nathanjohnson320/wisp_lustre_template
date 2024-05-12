@@ -1,6 +1,6 @@
 import config.{type Config}
+import gleam/int
 import gleam/list
-import gleam/option.{None, Some}
 import lustre/attribute.{autofocus, class, name, placeholder}
 import lustre/effect.{type Effect}
 import lustre/element.{type Element, text}
@@ -16,10 +16,11 @@ pub type Model {
 
 pub opaque type Msg {
   GotItems(Result(List(Item), HttpError))
+  CreatedItem(Result(Item, HttpError))
   SetTitle(String)
   CreateItem
-  DeleteItem(String)
-  CompleteItem(String)
+  DeleteItem(Int)
+  CompleteItem(Int)
 }
 
 pub fn init(config: Config) -> Model {
@@ -38,6 +39,12 @@ pub fn update(msg: Msg, model: Model) -> #(Model, Effect(Msg)) {
     GotItems(_) -> {
       #(model, effect.none())
     }
+    CreatedItem(Ok(item)) -> {
+      #(Model(..model, items: [item, ..model.items]), effect.none())
+    }
+    CreatedItem(_) -> {
+      #(model, effect.none())
+    }
     SetTitle(title) -> {
       #(
         Model(..model, current_item: Item(..model.current_item, title: title)),
@@ -51,35 +58,14 @@ pub fn update(msg: Msg, model: Model) -> #(Model, Effect(Msg)) {
           current_item: item.default(),
           items: [model.current_item, ..model.items],
         ),
-        effect.none(),
+        item.create_item(model.config, model.current_item, CreatedItem),
       )
     }
-    DeleteItem(id) -> {
-      let new_items =
-        model.items
-        |> list.filter(fn(item) {
-          case item.id {
-            Some(item_id) -> item_id != id
-            None -> True
-          }
-        })
-      #(Model(..model, items: new_items), effect.none())
+    DeleteItem(_id) -> {
+      #(Model(..model, items: []), effect.none())
     }
-    CompleteItem(id) -> {
-      let new_items =
-        model.items
-        |> list.map(fn(item) {
-          case item.id {
-            Some(item_id) -> {
-              case item_id == id {
-                True -> Item(id: item.id, title: item.title, status: Completed)
-                False -> item
-              }
-            }
-            None -> item
-          }
-        })
-      #(Model(..model, items: new_items), effect.none())
+    CompleteItem(_id) -> {
+      #(Model(..model, items: []), effect.none())
     }
   }
 }
@@ -133,10 +119,7 @@ fn item(item: Item) -> Element(Msg) {
       Uncompleted -> ""
     }
   }
-  let item_id = case item.id {
-    Some(id) -> id
-    None -> ""
-  }
+  let item_id = int.to_string(item.id)
 
   div([class("todo " <> completed_class)], [
     div([class("todo__inner")], [
@@ -149,7 +132,7 @@ fn item(item: Item) -> Element(Msg) {
       ),
       span([class("todo__title")], [text(item.title)]),
     ]),
-    button([class("todo__delete"), event.on_submit(DeleteItem(item_id))], [
+    button([class("todo__delete"), event.on_submit(DeleteItem(item.id))], [
       svg_icon_delete(),
     ]),
   ])

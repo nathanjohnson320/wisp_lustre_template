@@ -1,7 +1,7 @@
 import api
 import config.{type Config}
 import gleam/dynamic
-import gleam/option.{type Option, None}
+import gleam/json
 import lustre/effect.{type Effect}
 import lustre_http.{type HttpError}
 
@@ -11,17 +11,17 @@ pub type ItemStatus {
 }
 
 pub type Item {
-  Item(id: Option(String), title: String, status: ItemStatus)
+  Item(id: Int, title: String, status: ItemStatus)
 }
 
 pub fn default() -> Item {
-  Item(id: None, title: "", status: Uncompleted)
+  Item(id: 0, title: "", status: Uncompleted)
 }
 
 pub fn decoder() {
   dynamic.decode3(
     Item,
-    dynamic.field("id", dynamic.optional(dynamic.string)),
+    dynamic.field("id", dynamic.int),
     dynamic.field("title", dynamic.string),
     dynamic.field("status", status_decoder),
   )
@@ -35,13 +35,6 @@ pub fn status_decoder(
     Ok("uncompleted") -> Ok(Uncompleted)
     _ ->
       Error([dynamic.DecodeError(expected: "item status", found: "", path: [])])
-  }
-}
-
-pub fn create_item(id: Option(String), title: String, completed: Bool) -> Item {
-  case completed {
-    True -> Item(id, title, status: Completed)
-    False -> Item(id, title, status: Uncompleted)
   }
 }
 
@@ -60,6 +53,18 @@ pub fn item_status_to_bool(status: ItemStatus) -> Bool {
   }
 }
 
+fn item_encoder(item: Item) -> json.Json {
+  let status = case item.status {
+    Completed -> "completed"
+    Uncompleted -> "uncompleted"
+  }
+  json.object([
+    #("id", json.int(item.id)),
+    #("title", json.string(item.title)),
+    #("status", json.string(status)),
+  ])
+}
+
 pub fn list_items(
   config: Config,
   msg: fn(Result(List(Item), HttpError)) -> t,
@@ -67,4 +72,16 @@ pub fn list_items(
   config
   |> api.url("items")
   |> lustre_http.get(lustre_http.expect_json(dynamic.list(decoder()), msg))
+}
+
+pub fn create_item(
+  config: Config,
+  item: Item,
+  msg: fn(Result(Item, HttpError)) -> t,
+) -> Effect(t) {
+  let body = item_encoder(item)
+
+  config
+  |> api.url("items")
+  |> lustre_http.post(body, lustre_http.expect_json(decoder(), msg))
 }

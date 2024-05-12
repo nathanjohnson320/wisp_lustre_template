@@ -16,12 +16,13 @@ pub fn from_db() -> fn(dynamic.Dynamic) ->
   dynamic.tuple3(dynamic.int, dynamic.string, dynamic.string)
 }
 
-pub fn create_item(id: Option(String), title: String, completed: Bool) -> Item {
+pub fn create_item(
+  id: Option(String),
+  title: String,
+  status: ItemStatus,
+) -> Item {
   let id = option.unwrap(id, wisp.random_string(64))
-  case completed {
-    True -> Item(id, title, status: Completed)
-    False -> Item(id, title, status: Uncompleted)
-  }
+  Item(id, title, status: status)
 }
 
 pub fn toggle_todo(item: Item) -> Item {
@@ -32,9 +33,9 @@ pub fn toggle_todo(item: Item) -> Item {
   Item(..item, status: new_status)
 }
 
-pub fn item_status_to_bool(status: ItemStatus) -> Bool {
+pub fn item_status_to_string(status: ItemStatus) -> String {
   case status {
-    Completed -> True
-    Uncompleted -> False
+    Completed -> "complete"
+    Uncompleted -> "uncomplete"
   }
 }

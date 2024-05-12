@@ -6,6 +6,7 @@ import wisp.{type Request, type Response}
 pub fn handle_request(req: Request, ctx: Context) -> Response {
   use _req <- web.middleware(req, ctx)
   use ctx <- items_middleware(req, ctx)
+
   case wisp.path_segments(req) {
     ["items"] -> {
       use <- wisp.require_method(req, http.Get)

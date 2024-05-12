@@ -1,6 +1,7 @@
 import app/models/item.{type Item, create_item}
 import app/web.{type Context, Context}
 import gleam/dynamic
+import gleam/io
 import gleam/json
 import gleam/list
 import gleam/option.{None, Some}
@@ -12,26 +13,33 @@ import wisp.{type Request, type Response}
 pub fn list_items(_req: Request, ctx: Context) {
   let sql =
     "
-    SELECT id, title, completed
+    SELECT id, title, status
     FROM items
   "
   let current_items = sqlight.query(sql, ctx.repo, [], item.from_db())
 
-  current_items
-  |> todos_to_json()
-  |> wisp.json_response(200)
+  case current_items {
+    Ok(items) -> {
+      items
+      |> todos_to_json
+      |> wisp.json_response(200)
+    }
+    Error(e) -> {
+      io.debug(e)
+      wisp.internal_server_error()
+    }
+  }
 }
 
 pub fn post_create_item(req: Request, ctx: Context) {
   use form <- wisp.require_form(req)
 
-  let current_items = ctx.items
+  let current_items = []
 
   let result = {
     use item_title <- result.try(list.key_find(form.values, "todo_title"))
     let new_item = create_item(None, item_title, False)
     list.append(current_items, [new_item])
-    |> todos_to_json
     |> Ok
   }
 
@@ -46,17 +54,16 @@ pub fn post_create_item(req: Request, ctx: Context) {
 }
 
 pub fn delete_item(_req: Request, ctx: Context, item_id: String) {
-  let current_items = ctx.items
+  let current_items: List(Item) = []
 
   let _json_items = {
     list.filter(current_items, fn(item) { item.id != item_id })
-    |> todos_to_json
   }
   wisp.redirect("/")
 }
 
 pub fn patch_toggle_todo(_req: Request, ctx: Context, item_id: String) {
-  let current_items = ctx.items
+  let current_items: List(Item) = []
 
   let result = {
     use _ <- result.try(
@@ -68,7 +75,6 @@ pub fn patch_toggle_todo(_req: Request, ctx: Context, item_id: String) {
         False -> item
       }
     })
-    |> todos_to_json
     |> Ok
   }
 
@@ -79,16 +85,16 @@ pub fn patch_toggle_todo(_req: Request, ctx: Context, item_id: String) {
   }
 }
 
-fn todos_to_json(items: List(Item)) -> StringBuilder {
+fn todos_to_json(items: List(#(Int, String, String))) -> StringBuilder {
   json.array(items, item_encoder)
   |> json.to_string_builder()
 }
 
-fn item_encoder(item: Item) -> json.Json {
+fn item_encoder(item: #(Int, String, String)) -> json.Json {
   json.object([
-    #("id", json.string(item.id)),
-    #("title", json.string(item.title)),
-    #("completed", json.bool(item.item_status_to_bool(item.status))),
+    #("id", json.int(item.0)),
+    #("title", json.string(item.1)),
+    #("status", json.string(item.2)),
   ])
 }
 
@@ -124,8 +130,6 @@ pub fn items_middleware(
   }
 
   let items = create_items_from_json(parsed_items)
-
-  let ctx = Context(..ctx, items: items)
 
   handle_request(ctx)
 }

@@ -11,17 +11,17 @@ pub type ItemStatus {
 }
 
 pub type Item {
-  Item(id: Int, title: String, status: ItemStatus)
+  Item(id: String, title: String, status: ItemStatus)
 }
 
 pub fn default() -> Item {
-  Item(id: 0, title: "", status: Uncompleted)
+  Item(id: "", title: "", status: Uncompleted)
 }
 
 pub fn decoder() {
   dynamic.decode3(
     Item,
-    dynamic.field("id", dynamic.int),
+    dynamic.field("id", dynamic.string),
     dynamic.field("title", dynamic.string),
     dynamic.field("status", status_decoder),
   )
@@ -32,9 +32,10 @@ pub fn status_decoder(
 ) -> Result(ItemStatus, List(dynamic.DecodeError)) {
   case dynamic.string(d) {
     Ok("completed") -> Ok(Completed)
-    Ok("uncompleted") -> Ok(Uncompleted)
-    _ ->
+    Ok("uncomplete") -> Ok(Uncompleted)
+    _ -> {
       Error([dynamic.DecodeError(expected: "item status", found: "", path: [])])
+    }
   }
 }
 
@@ -59,7 +60,7 @@ fn item_encoder(item: Item) -> json.Json {
     Uncompleted -> "uncompleted"
   }
   json.object([
-    #("id", json.int(item.id)),
+    #("id", json.string(item.id)),
     #("title", json.string(item.title)),
     #("status", json.string(status)),
   ])

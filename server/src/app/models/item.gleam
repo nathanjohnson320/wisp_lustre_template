@@ -8,12 +8,12 @@ pub type ItemStatus {
 }
 
 pub type Item {
-  Item(id: Int, title: String, status: ItemStatus)
+  Item(id: String, title: String, status: ItemStatus)
 }
 
 pub fn from_db() -> fn(dynamic.Dynamic) ->
-  Result(#(Int, String, String), List(dynamic.DecodeError)) {
-  dynamic.tuple3(dynamic.int, dynamic.string, dynamic.string)
+  Result(#(String, String, String), List(dynamic.DecodeError)) {
+  dynamic.tuple3(dynamic.string, dynamic.string, dynamic.string)
 }
 
 pub fn toggle_todo(item: Item) -> Item {
@@ -39,20 +39,20 @@ pub fn string_to_item_status(status: String) -> Result(ItemStatus, String) {
   }
 }
 
-pub fn todos_to_json(items: List(#(Int, String, String))) -> StringBuilder {
+pub fn todos_to_json(items: List(#(String, String, String))) -> StringBuilder {
   json.array(items, item_encoder)
   |> json.to_string_builder()
 }
 
-pub fn todo_to_json(item: #(Int, String, String)) -> StringBuilder {
+pub fn todo_to_json(item: #(String, String, String)) -> StringBuilder {
   item
   |> item_encoder()
   |> json.to_string_builder()
 }
 
-fn item_encoder(item: #(Int, String, String)) -> json.Json {
+fn item_encoder(item: #(String, String, String)) -> json.Json {
   json.object([
-    #("id", json.int(item.0)),
+    #("id", json.string(item.0)),
     #("title", json.string(item.1)),
     #("status", json.string(item.2)),
   ])
@@ -61,7 +61,7 @@ fn item_encoder(item: #(Int, String, String)) -> json.Json {
 pub fn item_decoder() {
   dynamic.decode3(
     Item,
-    dynamic.field("id", dynamic.int),
+    dynamic.field("id", dynamic.string),
     dynamic.field("title", dynamic.string),
     dynamic.field("status", status_decoder),
   )

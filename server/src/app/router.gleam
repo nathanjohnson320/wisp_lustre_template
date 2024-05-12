@@ -1,8 +1,6 @@
 import app/routes/items_routes.{items_middleware}
 import app/web.{type Context}
 import gleam/http
-import gleam/int
-import gleam/result
 import wisp.{type Request, type Response}
 
 pub fn handle_request(req: Request, ctx: Context) -> Response {
@@ -20,13 +18,11 @@ pub fn handle_request(req: Request, ctx: Context) -> Response {
 
     ["items", id] -> {
       use <- wisp.require_method(req, http.Delete)
-      let id = result.unwrap(int.parse(id), 0)
       items_routes.delete_item(req, ctx, id)
     }
 
     ["items", id, "completion"] -> {
       use <- wisp.require_method(req, http.Patch)
-      let id = result.unwrap(int.parse(id), 0)
       items_routes.patch_toggle_todo(req, ctx, id)
     }
 

@@ -1,5 +1,5 @@
 import config.{type Config}
-import gleam/int
+import gleam/io
 import gleam/list
 import lustre/attribute.{autofocus, class, name, placeholder}
 import lustre/effect.{type Effect}
@@ -19,8 +19,8 @@ pub opaque type Msg {
   CreatedItem(Result(Item, HttpError))
   SetTitle(String)
   CreateItem
-  DeleteItem(Int)
-  CompleteItem(Int)
+  DeleteItem(String)
+  CompleteItem(String)
 }
 
 pub fn init(config: Config) -> Model {
@@ -53,11 +53,7 @@ pub fn update(msg: Msg, model: Model) -> #(Model, Effect(Msg)) {
     }
     CreateItem -> {
       #(
-        Model(
-          ..model,
-          current_item: item.default(),
-          items: [model.current_item, ..model.items],
-        ),
+        Model(..model, current_item: item.default()),
         item.create_item(model.config, model.current_item, CreatedItem),
       )
     }
@@ -119,14 +115,13 @@ fn item(item: Item) -> Element(Msg) {
       Uncompleted -> ""
     }
   }
-  let item_id = int.to_string(item.id)
 
   div([class("todo " <> completed_class)], [
     div([class("todo__inner")], [
       form(
         [
           attribute.method("POST"),
-          attribute.action("/items/" <> item_id <> "/completion?_method=PATCH"),
+          attribute.action("/items/" <> item.id <> "/completion?_method=PATCH"),
         ],
         [button([class("todo__button")], [svg_icon_checked()])],
       ),

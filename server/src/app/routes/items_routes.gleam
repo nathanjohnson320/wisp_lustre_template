@@ -9,7 +9,7 @@ import wisp.{type Request, type Response}
 pub fn list_items(_req: Request, ctx: Context) {
   let sql =
     "
-    SELECT id, title, status
+    SELECT *
     FROM items
   "
   let current_items = sqlight.query(sql, ctx.repo, [], item.from_db())
@@ -33,17 +33,17 @@ pub fn post_create_item(req: Request, ctx: Context) {
   let result = {
     use item <- result.try(item.item_decoder()(json))
 
-    io.debug(item)
     let sql =
       "
-      INSERT INTO items (title, status)
-      VALUES (?, ?)
+      INSERT INTO items (id, title, status)
+      VALUES (?, ?, ?)
       RETURNING *
     "
     sqlight.query(
       sql,
       ctx.repo,
       [
+        sqlight.text(wisp.random_string(64)),
         sqlight.text(item.title),
         sqlight.text(item.item_status_to_string(item.status)),
       ],
@@ -69,7 +69,7 @@ pub fn post_create_item(req: Request, ctx: Context) {
   }
 }
 
-pub fn delete_item(_req: Request, _ctx: Context, item_id: Int) {
+pub fn delete_item(_req: Request, _ctx: Context, item_id: String) {
   let current_items: List(Item) = []
 
   let _json_items = {
@@ -78,7 +78,7 @@ pub fn delete_item(_req: Request, _ctx: Context, item_id: Int) {
   wisp.redirect("/")
 }
 
-pub fn patch_toggle_todo(_req: Request, _ctx: Context, item_id: Int) {
+pub fn patch_toggle_todo(_req: Request, _ctx: Context, item_id: String) {
   let current_items: List(Item) = []
 
   let result = {

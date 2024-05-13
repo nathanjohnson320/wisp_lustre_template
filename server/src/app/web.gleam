@@ -38,7 +38,6 @@ pub fn middleware(
   handle_request(req)
 }
 
-// New code added 👇
 pub fn default_responses(handle_request: fn() -> wisp.Response) -> wisp.Response {
   let response = handle_request()
 

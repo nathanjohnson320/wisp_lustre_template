@@ -34,7 +34,7 @@ pub fn status_decoder(
   d: dynamic.Dynamic,
 ) -> Result(ItemStatus, List(dynamic.DecodeError)) {
   case dynamic.string(d) {
-    Ok("completed") -> Ok(Completed)
+    Ok("complete") -> Ok(Completed)
     Ok("uncomplete") -> Ok(Uncompleted)
     _ -> {
       Error([dynamic.DecodeError(expected: "item status", found: "", path: [])])
@@ -103,5 +103,23 @@ pub fn delete_item(
 
   req
   |> request.set_method(http.Delete)
+  |> lustre_http.send(lustre_http.expect_json(decoder(), msg))
+}
+
+pub fn update_item(
+  config: Config,
+  item: Item,
+  msg: fn(Result(Item, HttpError)) -> t,
+) -> Effect(t) {
+  let url = api.url(config, "items" <> "/" <> item.id)
+  let req =
+    url
+    |> request.to()
+    |> result.unwrap(request.new())
+
+  req
+  |> request.set_method(http.Patch)
+  |> request.set_header("Content-Type", "application/json")
+  |> request.set_body(json.to_string(item_encoder(item)))
   |> lustre_http.send(lustre_http.expect_json(decoder(), msg))
 }

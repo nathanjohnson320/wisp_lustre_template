@@ -17,13 +17,11 @@ pub fn handle_request(req: Request, ctx: Context) -> Response {
     }
 
     ["items", id] -> {
-      use <- wisp.require_method(req, http.Delete)
-      items_routes.delete_item(req, ctx, id)
-    }
-
-    ["items", id, "completion"] -> {
-      use <- wisp.require_method(req, http.Patch)
-      items_routes.patch_toggle_todo(req, ctx, id)
+      case req.method {
+        http.Patch -> items_routes.patch_item(req, ctx, id)
+        http.Delete -> items_routes.delete_item(req, ctx, id)
+        _ -> wisp.method_not_allowed([http.Get, http.Patch, http.Delete])
+      }
     }
 
     // All the empty responses

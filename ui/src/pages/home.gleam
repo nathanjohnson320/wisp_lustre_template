@@ -17,6 +17,7 @@ pub opaque type Msg {
   GotItems(Result(List(Item), HttpError))
   CreatedItem(Result(Item, HttpError))
   DeletedItem(Result(Item, HttpError))
+  UpdatedItem(Result(Item, HttpError))
   SetTitle(String)
   CreateItem
   DeleteItem(String)
@@ -42,6 +43,9 @@ pub fn update(msg: Msg, model: Model) -> #(Model, Effect(Msg)) {
     CreatedItem(Ok(item)) -> {
       #(Model(..model, items: [item, ..model.items]), effect.none())
     }
+    CreatedItem(_) -> {
+      #(model, effect.none())
+    }
     DeletedItem(Ok(item)) -> {
       #(
         Model(
@@ -55,7 +59,22 @@ pub fn update(msg: Msg, model: Model) -> #(Model, Effect(Msg)) {
     DeletedItem(_) -> {
       #(model, effect.none())
     }
-    CreatedItem(_) -> {
+    UpdatedItem(Ok(item)) -> {
+      #(
+        Model(
+          ..model,
+          items: model.items
+            |> list.map(fn(i) {
+              case i.id == item.id {
+                True -> item
+                False -> i
+              }
+            }),
+        ),
+        effect.none(),
+      )
+    }
+    UpdatedItem(_) -> {
       #(model, effect.none())
     }
     SetTitle(title) -> {
@@ -73,8 +92,26 @@ pub fn update(msg: Msg, model: Model) -> #(Model, Effect(Msg)) {
     DeleteItem(id) -> {
       #(model, item.delete_item(model.config, id, DeletedItem))
     }
-    CompleteItem(_id) -> {
-      #(Model(..model, items: []), effect.none())
+    CompleteItem(id) -> {
+      let assert Ok(item) =
+        model.items
+        |> list.find(fn(i) { i.id == id })
+
+      let new_status = {
+        case item.status {
+          Completed -> Uncompleted
+          Uncompleted -> Completed
+        }
+      }
+
+      #(
+        model,
+        item.update_item(
+          model.config,
+          Item(..item, status: new_status),
+          UpdatedItem,
+        ),
+      )
     }
   }
 }
@@ -131,13 +168,9 @@ fn item(item: Item) -> Element(Msg) {
 
   div([class("todo " <> completed_class)], [
     div([class("todo__inner")], [
-      form(
-        [
-          attribute.method("POST"),
-          attribute.action("/items/" <> item.id <> "/completion?_method=PATCH"),
-        ],
-        [button([class("todo__button")], [svg_icon_checked()])],
-      ),
+      button([class("todo__button"), event.on_click(CompleteItem(item.id))], [
+        svg_icon_checked(),
+      ]),
       span([class("todo__title")], [text(item.title)]),
     ]),
     button([class("todo__delete"), event.on_click(DeleteItem(item.id))], [

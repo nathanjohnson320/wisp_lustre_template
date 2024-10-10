@@ -7,13 +7,15 @@ import gleam/string
 import mist
 import sqlight
 import wisp
+import wisp/wisp_mist
 
 pub fn main() {
   wisp.configure_logger()
-  dot_env.load()
+  dot_env.new()
+  |> dot_env.load()
 
-  let assert Ok(secret_key_base) = env.get("SECRET_KEY_BASE")
-  let assert Ok(db_url) = env.get("DATABASE_URL")
+  let assert Ok(secret_key_base) = env.get_string("SECRET_KEY_BASE")
+  let assert Ok(db_url) = env.get_string("DATABASE_URL")
 
   use repo <- sqlight.with_connection(string.crop(from: db_url, before: "db/"))
 
@@ -22,7 +24,7 @@ pub fn main() {
   let handler = router.handle_request(_, ctx)
 
   let assert Ok(_) =
-    wisp.mist_handler(handler, secret_key_base)
+    wisp_mist.handler(handler, secret_key_base)
     |> mist.new
     |> mist.port(8000)
     |> mist.start_http

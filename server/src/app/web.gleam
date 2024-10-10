@@ -27,7 +27,7 @@ pub fn middleware(
   handle_request: fn(wisp.Request) -> wisp.Response,
 ) -> wisp.Response {
   let req = wisp.method_override(req)
-  use req <- cors.wisp_handle(req, cors())
+  use req <- cors.wisp_middleware(req, cors())
   use <- wisp.serve_static(req, under: "/static", from: ctx.static_directory)
   use <- wisp.log_request(req)
   use <- wisp.rescue_crashes

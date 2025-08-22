@@ -143,7 +143,7 @@ fn todos_input(model: Model) -> Element(Msg) {
       class("add-todo-input"),
       attribute.method("POST"),
       attribute.action("/items/create"),
-      event.on_submit(CreateItem),
+      event.on_submit(fn(_) { CreateItem }),
     ],
     [
       input([

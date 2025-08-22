@@ -11,10 +11,10 @@ pub type Item {
   Item(id: String, title: String, status: ItemStatus)
 }
 
-pub fn from_db() -> decode.Decoder(#(String, String, ItemStatus)) {
+pub fn from_db() -> decode.Decoder(#(String, String, String)) {
   use id <- decode.field(0, decode.string)
   use title <- decode.field(1, decode.string)
-  use status <- decode.field(2, status_decoder())
+  use status <- decode.field(2, decode.string)
   decode.success(#(id, title, status))
 }
 
@@ -41,22 +41,22 @@ pub fn string_to_item_status(status: String) -> Result(ItemStatus, String) {
   }
 }
 
-pub fn todos_to_json(items: List(#(String, String, ItemStatus))) -> StringTree {
+pub fn todos_to_json(items: List(#(String, String, String))) -> StringTree {
   json.array(items, item_encoder)
   |> json.to_string_tree()
 }
 
-pub fn todo_to_json(item: #(String, String, ItemStatus)) -> StringTree {
+pub fn todo_to_json(item: #(String, String, String)) -> StringTree {
   item
   |> item_encoder()
   |> json.to_string_tree()
 }
 
-fn item_encoder(item: #(String, String, ItemStatus)) -> json.Json {
+fn item_encoder(item: #(String, String, String)) -> json.Json {
   json.object([
     #("id", json.string(item.0)),
     #("title", json.string(item.1)),
-    #("status", json.string(item_status_to_string(item.2))),
+    #("status", json.string(item.2)),
   ])
 }
 

@@ -13,7 +13,7 @@ pub fn main(pathname: String) {
   let assert Ok(uri) = uri.parse(pathname)
   let app = lustre.application(init, update, view)
   let assert Ok(_) =
-    lustre.start(app, "#app", Flags("http://localhost:8000", uri))
+    lustre.start(app, "#app", Flags("http://localhost:8080", uri))
 }
 
 // MODEL -----------------------------------------------------------------------

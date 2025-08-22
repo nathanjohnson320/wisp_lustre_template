@@ -1,6 +1,6 @@
 import api
 import config.{type Config}
-import gleam/dynamic
+import gleam/dynamic/decode
 import gleam/http
 import gleam/http/request
 import gleam/json
@@ -21,24 +21,19 @@ pub fn default() -> Item {
   Item(id: "", title: "", status: Uncompleted)
 }
 
-pub fn decoder() {
-  dynamic.decode3(
-    Item,
-    dynamic.field("id", dynamic.string),
-    dynamic.field("title", dynamic.string),
-    dynamic.field("status", status_decoder),
-  )
+pub fn decoder() -> decode.Decoder(Item) {
+  use id <- decode.field("id", decode.string)
+  use title <- decode.field("title", decode.string)
+  use status <- decode.field("status", status_decoder())
+  decode.success(Item(id:, title:, status:))
 }
 
-pub fn status_decoder(
-  d: dynamic.Dynamic,
-) -> Result(ItemStatus, List(dynamic.DecodeError)) {
-  case dynamic.string(d) {
-    Ok("complete") -> Ok(Completed)
-    Ok("uncomplete") -> Ok(Uncompleted)
-    _ -> {
-      Error([dynamic.DecodeError(expected: "item status", found: "", path: [])])
-    }
+pub fn status_decoder() -> decode.Decoder(ItemStatus) {
+  use decoded_string <- decode.then(decode.string)
+  case decoded_string {
+    "complete" -> decode.success(Completed)
+    "uncomplete" -> decode.success(Uncompleted)
+    _ -> decode.failure(Uncompleted, "Invalid status")
   }
 }
 
@@ -75,7 +70,7 @@ pub fn list_items(
 ) -> Effect(t) {
   config
   |> api.url("items")
-  |> lustre_http.get(lustre_http.expect_json(dynamic.list(decoder()), msg))
+  |> lustre_http.get(lustre_http.expect_json(decode.list(decoder()), msg))
 }
 
 pub fn create_item(

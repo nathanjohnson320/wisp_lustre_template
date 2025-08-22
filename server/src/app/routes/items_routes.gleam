@@ -40,13 +40,13 @@ pub fn post_create_item(req: Request, ctx: Context) {
     "
     sqlight.query(
       sql,
-      ctx.repo,
-      [
+      on: ctx.repo,
+      with: [
         sqlight.text(wisp.random_string(64)),
         sqlight.text(item.title),
         sqlight.text(item.item_status_to_string(item.status)),
       ],
-      item.from_db(),
+      expecting: item.from_db(),
     )
     |> result.map_error(fn(e) {
       echo e

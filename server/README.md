@@ -1,7 +1,7 @@
-# game_cal
+# server
 
-[![Package Version](https://img.shields.io/hexpm/v/game_cal)](https://hex.pm/packages/game_cal)
-[![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3)](https://hexdocs.pm/game_cal/)
+[![Package Version](https://img.shields.io/hexpm/v/server)](https://hex.pm/packages/server)
+[![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3)](https://hexdocs.pm/server/)
 
 A Gleam project
 
@@ -18,7 +18,7 @@ gleam shell # Run an Erlang shell
 If available on Hex this package can be added to your Gleam project:
 
 ```sh
-gleam add game_cal
+gleam add server
 ```
 
-and its documentation can be found at <https://hexdocs.pm/game_cal>.
+and its documentation can be found at <https://hexdocs.pm/server>.

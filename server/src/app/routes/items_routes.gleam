@@ -1,6 +1,6 @@
 import app/models/item
-import app/web.{type Context, Context}
-import gleam/io
+import app/web.{type Context}
+import gleam/dynamic/decode
 import gleam/result
 import sqlight
 import wisp.{type Request, type Response}
@@ -20,7 +20,7 @@ pub fn list_items(_req: Request, ctx: Context) {
       |> wisp.json_response(200)
     }
     Error(e) -> {
-      io.debug(e)
+      echo e
       wisp.internal_server_error()
     }
   }
@@ -30,7 +30,7 @@ pub fn post_create_item(req: Request, ctx: Context) {
   use json <- wisp.require_json(req)
 
   let result = {
-    use item <- result.try(item.item_decoder()(json))
+    use item <- result.try(decode.run(json, item.item_decoder()))
 
     let sql =
       "
@@ -49,7 +49,7 @@ pub fn post_create_item(req: Request, ctx: Context) {
       item.from_db(),
     )
     |> result.map_error(fn(e) {
-      io.debug(e)
+      echo e
       []
     })
   }
@@ -62,7 +62,7 @@ pub fn post_create_item(req: Request, ctx: Context) {
     }
     Ok(_) -> wisp.internal_server_error()
     Error(e) -> {
-      io.debug(e)
+      echo e
       wisp.bad_request()
     }
   }
@@ -77,7 +77,7 @@ pub fn delete_item(_req: Request, ctx: Context, item_id: String) {
   let result =
     sqlight.query(sql, ctx.repo, [sqlight.text(item_id)], item.from_db())
     |> result.map_error(fn(e) {
-      io.debug(e)
+      echo e
       []
     })
 
@@ -89,7 +89,7 @@ pub fn delete_item(_req: Request, ctx: Context, item_id: String) {
     }
     Ok(_) -> wisp.not_found()
     Error(e) -> {
-      io.debug(e)
+      echo e
       wisp.bad_request()
     }
   }
@@ -99,7 +99,7 @@ pub fn patch_item(req: Request, ctx: Context, item_id: String) {
   use json <- wisp.require_json(req)
 
   let result = {
-    use item <- result.try(item.item_decoder()(json))
+    use item <- result.try(decode.run(json, item.item_decoder()))
 
     let sql =
       "
@@ -119,7 +119,7 @@ pub fn patch_item(req: Request, ctx: Context, item_id: String) {
       item.from_db(),
     )
     |> result.map_error(fn(e) {
-      io.debug(e)
+      echo e
       []
     })
   }
@@ -132,7 +132,7 @@ pub fn patch_item(req: Request, ctx: Context, item_id: String) {
     }
     Ok(_) -> wisp.internal_server_error()
     Error(e) -> {
-      io.debug(e)
+      echo e
       wisp.bad_request()
     }
   }

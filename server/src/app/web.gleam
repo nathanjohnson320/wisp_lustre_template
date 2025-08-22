@@ -1,7 +1,7 @@
 import cors_builder as cors
 import gleam/bool
 import gleam/http
-import gleam/string_builder
+import gleam/string_tree
 import sqlight
 import wisp
 
@@ -46,22 +46,22 @@ pub fn default_responses(handle_request: fn() -> wisp.Response) -> wisp.Response
   case response.status {
     404 | 405 ->
       "<h1>Not Found</h1>"
-      |> string_builder.from_string
+      |> string_tree.from_string
       |> wisp.html_body(response, _)
 
     400 | 422 ->
       "<h1>Bad request</h1>"
-      |> string_builder.from_string
+      |> string_tree.from_string
       |> wisp.html_body(response, _)
 
     413 ->
       "<h1>Request entity too large</h1>"
-      |> string_builder.from_string
+      |> string_tree.from_string
       |> wisp.html_body(response, _)
 
     500 ->
       "<h1>Internal server error</h1>"
-      |> string_builder.from_string
+      |> string_tree.from_string
       |> wisp.html_body(response, _)
 
     _ -> response

@@ -26,13 +26,13 @@ pub fn main() {
   let assert Ok(_) =
     wisp_mist.handler(handler, secret_key_base)
     |> mist.new
-    |> mist.port(8000)
-    |> mist.start_http
+    |> mist.port(8080)
+    |> mist.start
 
   process.sleep_forever()
 }
 
 fn static_directory() {
-  let assert Ok(priv_directory) = wisp.priv_directory("example")
+  let assert Ok(priv_directory) = wisp.priv_directory("server")
   priv_directory <> "/static"
 }

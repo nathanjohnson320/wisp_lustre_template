@@ -1,6 +1,5 @@
 import gleam/dynamic/decode
 import gleam/json
-import gleam/string_tree.{type StringTree}
 
 pub type ItemStatus {
   Completed
@@ -41,15 +40,15 @@ pub fn string_to_item_status(status: String) -> Result(ItemStatus, String) {
   }
 }
 
-pub fn todos_to_json(items: List(#(String, String, String))) -> StringTree {
+pub fn todos_to_json(items: List(#(String, String, String))) -> String {
   json.array(items, item_encoder)
-  |> json.to_string_tree()
+  |> json.to_string()
 }
 
-pub fn todo_to_json(item: #(String, String, String)) -> StringTree {
+pub fn todo_to_json(item: #(String, String, String)) -> String {
   item
   |> item_encoder()
-  |> json.to_string_tree()
+  |> json.to_string()
 }
 
 fn item_encoder(item: #(String, String, String)) -> json.Json {

@@ -63,7 +63,7 @@ pub fn post_create_item(req: Request, ctx: Context) {
     Ok(_) -> wisp.internal_server_error()
     Error(e) -> {
       echo e
-      wisp.bad_request()
+      wisp.bad_request("Failed to create item")
     }
   }
 }
@@ -90,7 +90,7 @@ pub fn delete_item(_req: Request, ctx: Context, item_id: String) {
     Ok(_) -> wisp.not_found()
     Error(e) -> {
       echo e
-      wisp.bad_request()
+      wisp.bad_request("Failed to delete item")
     }
   }
 }
@@ -133,7 +133,7 @@ pub fn patch_item(req: Request, ctx: Context, item_id: String) {
     Ok(_) -> wisp.internal_server_error()
     Error(e) -> {
       echo e
-      wisp.bad_request()
+      wisp.bad_request("")
     }
   }
 }

@@ -4,9 +4,8 @@ import gleam/http
 import wisp.{type Request, type Response}
 
 pub fn handle_request(req: Request, ctx: Context) -> Response {
-  use _req <- web.middleware(req, ctx)
+  use req <- web.middleware(req, ctx)
   use ctx <- items_middleware(req, ctx)
-
   case wisp.path_segments(req) {
     ["items"] -> {
       case req.method {
@@ -26,10 +25,10 @@ pub fn handle_request(req: Request, ctx: Context) -> Response {
 
     // All the empty responses
     ["internal-server-error"] -> wisp.internal_server_error()
-    ["unprocessable-entity"] -> wisp.unprocessable_entity()
+    ["unprocessable-content"] -> wisp.unprocessable_content()
     ["method-not-allowed"] -> wisp.method_not_allowed([])
-    ["entity-too-large"] -> wisp.entity_too_large()
-    ["bad-request"] -> wisp.bad_request()
+    ["entity-too-large"] -> wisp.content_too_large()
+    ["bad-request"] -> wisp.bad_request("Bad request")
     _ -> wisp.not_found()
   }
 }

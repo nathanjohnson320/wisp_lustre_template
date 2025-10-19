@@ -16,6 +16,10 @@ pub fn main() {
 
   let assert Ok(secret_key_base) = env.get_string("SECRET_KEY_BASE")
   let assert Ok(db_url) = env.get_string("DATABASE_URL")
+  let port = case env.get_int("PORT") {
+    Ok(port) -> port
+    Error(_) -> 9999
+  }
 
   use repo <- sqlight.with_connection(string.crop(from: db_url, before: "db/"))
 
@@ -26,7 +30,7 @@ pub fn main() {
   let assert Ok(_) =
     wisp_mist.handler(handler, secret_key_base)
     |> mist.new
-    |> mist.port(8080)
+    |> mist.port(port)
     |> mist.start
 
   process.sleep_forever()

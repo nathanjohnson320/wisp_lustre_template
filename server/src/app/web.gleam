@@ -1,7 +1,7 @@
 import cors_builder as cors
 import gleam/bool
 import gleam/http
-import sqlight
+import pog
 import wisp
 
 fn cors() {
@@ -17,7 +17,7 @@ fn cors() {
 }
 
 pub type Context {
-  Context(static_directory: String, repo: sqlight.Connection)
+  Context(static_directory: String, repo: fn() -> pog.Connection)
 }
 
 pub fn middleware(

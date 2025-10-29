@@ -3,14 +3,17 @@ import app/web.{Context}
 import dot_env
 import dot_env/env
 import gleam/erlang/process
-import gleam/string
+import gleam/otp/static_supervisor as supervisor
 import mist
-import sqlight
+import pog
 import wisp
 import wisp/wisp_mist
 
+const app_name = "server"
+
 pub fn main() {
   wisp.configure_logger()
+
   dot_env.new()
   |> dot_env.load()
 
@@ -21,22 +24,37 @@ pub fn main() {
     Error(_) -> 9999
   }
 
-  use repo <- sqlight.with_connection(string.crop(from: db_url, before: "db/"))
+  let pool_name = process.new_name(app_name)
+  let assert Ok(db_config) = pog.url_config(pool_name, db_url)
 
-  let ctx = Context(static_directory: static_directory(), repo: repo)
+  let db =
+    db_config
+    |> pog.pool_size(15)
+    |> pog.supervised
+
+  let ctx =
+    Context(static_directory: static_directory(), repo: fn() -> pog.Connection {
+      pog.named_connection(pool_name)
+    })
 
   let handler = router.handle_request(_, ctx)
 
-  let assert Ok(_) =
+  let web =
     wisp_mist.handler(handler, secret_key_base)
     |> mist.new
     |> mist.port(port)
-    |> mist.start
+    |> mist.supervised()
+
+  let assert Ok(_) =
+    supervisor.new(supervisor.RestForOne)
+    |> supervisor.add(db)
+    |> supervisor.add(web)
+    |> supervisor.start
 
   process.sleep_forever()
 }
 
 fn static_directory() {
-  let assert Ok(priv_directory) = wisp.priv_directory("server")
+  let assert Ok(priv_directory) = wisp.priv_directory(app_name)
   priv_directory <> "/static"
 }

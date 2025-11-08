@@ -1,25 +1,18 @@
 import app/models/item
+import app/sql
 import app/web.{type Context}
 import gleam/dynamic/decode
+import gleam/list
 import gleam/result
-import pog
 import wisp.{type Request, type Response}
 
 pub fn list_items(_req: Request, ctx: Context) {
-  let sql =
-    "
-    SELECT *
-    FROM items
-  "
-  let current_items =
-    sql
-    |> pog.query()
-    |> pog.returning(item.from_db())
-    |> pog.execute(ctx.repo())
+  let current_items = sql.items_list(ctx.repo())
 
   case current_items {
     Ok(data) -> {
       data.rows
+      |> list.map(item.from_db_row)
       |> item.todos_to_json
       |> wisp.json_response(200)
     }
@@ -36,20 +29,12 @@ pub fn post_create_item(req: Request, ctx: Context) {
   let result = {
     use item <- result.try(decode.run(json, item.item_decoder()))
 
-    let sql =
-      "
-      INSERT INTO items (id, title, status)
-      VALUES ($1, $2, $3)
-      RETURNING *
-    "
-
-    sql
-    |> pog.query()
-    |> pog.parameter(pog.text(wisp.random_string(64)))
-    |> pog.parameter(pog.text(item.title))
-    |> pog.parameter(pog.text(item.item_status_to_string(item.status)))
-    |> pog.returning(item.from_db())
-    |> pog.execute(ctx.repo())
+    sql.items_insert(
+      ctx.repo(),
+      wisp.random_string(64),
+      item.title,
+      item.item_status_to_string(item.status),
+    )
     |> result.map_error(fn(e) {
       echo e
       []
@@ -59,8 +44,9 @@ pub fn post_create_item(req: Request, ctx: Context) {
   case result {
     Ok(data) -> {
       case data.rows {
-        [#(id, title, status)] -> {
-          #(id, title, status)
+        [row] -> {
+          row
+          |> item.from_db_row_insert()
           |> item.todo_to_json
           |> wisp.json_response(201)
         }
@@ -75,17 +61,8 @@ pub fn post_create_item(req: Request, ctx: Context) {
 }
 
 pub fn delete_item(_req: Request, ctx: Context, item_id: String) {
-  let sql =
-    "
-      DELETE FROM items WHERE id = $1
-      RETURNING *
-    "
   let result =
-    sql
-    |> pog.query()
-    |> pog.parameter(pog.text(item_id))
-    |> pog.returning(item.from_db())
-    |> pog.execute(ctx.repo())
+    sql.items_delete(ctx.repo(), item_id)
     |> result.map_error(fn(e) {
       echo e
       []
@@ -94,8 +71,9 @@ pub fn delete_item(_req: Request, ctx: Context, item_id: String) {
   case result {
     Ok(data) -> {
       case data.rows {
-        [#(id, title, status)] -> {
-          #(id, title, status)
+        [row] -> {
+          row
+          |> item.from_db_row_delete()
           |> item.todo_to_json
           |> wisp.json_response(200)
         }
@@ -115,24 +93,12 @@ pub fn patch_item(req: Request, ctx: Context, item_id: String) {
   let result = {
     use item <- result.try(decode.run(json, item.item_decoder()))
 
-    let sql =
-      "
-      UPDATE items
-      SET title = $1, status = $2
-      WHERE id = $3
-      RETURNING *
-    "
-    sql
-    |> pog.query()
-    |> pog.parameter(pog.text(item.title))
-    |> pog.parameter(pog.text(item.item_status_to_string(item.status)))
-    |> pog.parameter(pog.text(item_id))
-    |> pog.returning(item.from_db())
-    |> pog.execute(ctx.repo())
-    |> result.map_error(fn(e) {
-      echo e
-      []
-    })
+    sql.items_update(
+      ctx.repo(),
+      item.title,
+      item.item_status_to_string(item.status),
+      item_id,
+    )
     |> result.map_error(fn(e) {
       echo e
       []
@@ -142,8 +108,9 @@ pub fn patch_item(req: Request, ctx: Context, item_id: String) {
   case result {
     Ok(data) -> {
       case data.rows {
-        [#(id, title, status)] -> {
-          #(id, title, status)
+        [row] -> {
+          row
+          |> item.from_db_row_update()
           |> item.todo_to_json
           |> wisp.json_response(200)
         }

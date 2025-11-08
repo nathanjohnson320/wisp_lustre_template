@@ -1,6 +1,6 @@
-\restrict OJ8SARhyqDXan4hVg9zH6sqqRmPRsvomaxIT9cBH5ZxzYuN9yRjK2iz7RitBsh4
+\restrict ZbbIZ6hWuAJZNhgif8sjHhPWk2Dhc6wkrXWcrtRNcfwd9HWa6Nuc4f486CusF9l
 
--- Dumped from database version 14.15
+-- Dumped from database version 18.0 (Debian 18.0-1.pgdg13+3)
 -- Dumped by pg_dump version 18.0
 
 SET statement_timeout = 0;
@@ -14,13 +14,6 @@ SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
-
---
--- Name: public; Type: SCHEMA; Schema: -; Owner: -
---
-
--- *not* creating schema, since initdb creates it
-
 
 SET default_tablespace = '';
 
@@ -66,7 +59,7 @@ ALTER TABLE ONLY public.schema_migrations
 -- PostgreSQL database dump complete
 --
 
-\unrestrict OJ8SARhyqDXan4hVg9zH6sqqRmPRsvomaxIT9cBH5ZxzYuN9yRjK2iz7RitBsh4
+\unrestrict ZbbIZ6hWuAJZNhgif8sjHhPWk2Dhc6wkrXWcrtRNcfwd9HWa6Nuc4f486CusF9l
 
 
 --

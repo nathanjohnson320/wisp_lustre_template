@@ -1,5 +1,10 @@
+import app/sql.{
+  type ItemsDeleteRow, type ItemsInsertRow, type ItemsListRow,
+  type ItemsUpdateRow,
+}
 import gleam/dynamic/decode
 import gleam/json
+import gleam/result
 
 pub type ItemStatus {
   Completed
@@ -8,6 +13,27 @@ pub type ItemStatus {
 
 pub type Item {
   Item(id: String, title: String, status: ItemStatus)
+}
+
+fn from_db_row_fields(id: String, title: String, status_string: String) -> Item {
+  let status = result.unwrap(string_to_item_status(status_string), Uncompleted)
+  Item(id: id, title: title, status: status)
+}
+
+pub fn from_db_row(row: ItemsListRow) -> Item {
+  from_db_row_fields(row.id, row.title, row.status)
+}
+
+pub fn from_db_row_insert(row: ItemsInsertRow) -> Item {
+  from_db_row_fields(row.id, row.title, row.status)
+}
+
+pub fn from_db_row_delete(row: ItemsDeleteRow) -> Item {
+  from_db_row_fields(row.id, row.title, row.status)
+}
+
+pub fn from_db_row_update(row: ItemsUpdateRow) -> Item {
+  from_db_row_fields(row.id, row.title, row.status)
 }
 
 pub fn from_db() -> decode.Decoder(#(String, String, String)) {
@@ -40,22 +66,22 @@ pub fn string_to_item_status(status: String) -> Result(ItemStatus, String) {
   }
 }
 
-pub fn todos_to_json(items: List(#(String, String, String))) -> String {
+pub fn todos_to_json(items: List(Item)) -> String {
   json.array(items, item_encoder)
   |> json.to_string()
 }
 
-pub fn todo_to_json(item: #(String, String, String)) -> String {
+pub fn todo_to_json(item: Item) -> String {
   item
   |> item_encoder()
   |> json.to_string()
 }
 
-fn item_encoder(item: #(String, String, String)) -> json.Json {
+fn item_encoder(item: Item) -> json.Json {
   json.object([
-    #("id", json.string(item.0)),
-    #("title", json.string(item.1)),
-    #("status", json.string(item.2)),
+    #("id", json.string(item.id)),
+    #("title", json.string(item.title)),
+    #("status", json.string(item_status_to_string(item.status))),
   ])
 }
 

@@ -12,6 +12,7 @@ A full-stack web application template built with [Gleam](https://gleam.run/), fe
 - `server/` - Backend Gleam project (Erlang target)
   - REST API endpoints
   - Database migrations with dbmate
+  - SQL query generation with Squirrel
   - Example routes for todo items
   
 - `ui/` - Frontend Gleam project (JavaScript target)
@@ -91,6 +92,7 @@ The built assets will be in `ui/build/prod/javascript/`. The server serves stati
 
 - ✅ RESTful API with Wisp
 - ✅ Database access with pog (PostgreSQL support)
+- ✅ SQL query generation with Squirrel
 - ✅ Type-safe frontend with Lustre
 - ✅ HTTP client with `lustre_http`
 - ✅ Client-side routing with `modem`
@@ -131,12 +133,24 @@ npm run db:down                    # Rollback last migration
 npm run db:status                  # Check migration status
 ```
 
+### SQL Query Generation
+
+This project uses [Squirrel](https://github.com/giacomocavalieri/squirrel) to generate type-safe Gleam functions from SQL files. SQL queries are stored in `server/src/app/sql/` and the generated Gleam code is in `server/src/app/sql.gleam`.
+
+After creating or modifying SQL files, regenerate the Gleam code:
+
+```bash
+cd server
+npm run db:gen:sql
+```
+
 ## Learn More
 
 - [Gleam Language Documentation](https://gleam.run/documentation/)
 - [Wisp Framework](https://hexdocs.pm/wisp/)
 - [Lustre Framework](https://hexdocs.pm/lustre/)
 - [pog Database Library](https://hexdocs.pm/pog/)
+- [Squirrel SQL Generator](https://github.com/giacomocavalieri/squirrel)
 
 ## License
 

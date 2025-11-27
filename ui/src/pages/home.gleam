@@ -1,5 +1,6 @@
 import config.{type Config}
 import gleam/list
+import http/item as http
 import lustre/attribute.{autofocus, class, name, placeholder}
 import lustre/effect.{type Effect}
 import lustre/element.{type Element, text}
@@ -29,7 +30,7 @@ pub fn init(config: Config) -> Model {
 }
 
 pub fn on_load(config: Config) -> Effect(Msg) {
-  effect.batch([item.list_items(config, GotItems)])
+  effect.batch([http.list_items(config, GotItems)])
 }
 
 pub fn update(msg: Msg, model: Model) -> #(Model, Effect(Msg)) {
@@ -86,11 +87,11 @@ pub fn update(msg: Msg, model: Model) -> #(Model, Effect(Msg)) {
     CreateItem -> {
       #(
         Model(..model, current_item: item.default()),
-        item.create_item(model.config, model.current_item, CreatedItem),
+        http.create_item(model.config, model.current_item, CreatedItem),
       )
     }
     DeleteItem(id) -> {
-      #(model, item.delete_item(model.config, id, DeletedItem))
+      #(model, http.delete_item(model.config, id, DeletedItem))
     }
     CompleteItem(id) -> {
       let assert Ok(item) =
@@ -106,7 +107,7 @@ pub fn update(msg: Msg, model: Model) -> #(Model, Effect(Msg)) {
 
       #(
         model,
-        item.update_item(
+        http.update_item(
           model.config,
           Item(..item, status: new_status),
           UpdatedItem,

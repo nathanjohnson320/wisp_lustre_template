@@ -1,9 +1,10 @@
-import app/models/item
+import app/db/item as db
 import app/sql
 import app/web.{type Context}
 import gleam/dynamic/decode
 import gleam/list
 import gleam/result
+import models/item
 import wisp.{type Request, type Response}
 
 pub fn list_items(_req: Request, ctx: Context) {
@@ -12,7 +13,7 @@ pub fn list_items(_req: Request, ctx: Context) {
   case current_items {
     Ok(data) -> {
       data.rows
-      |> list.map(item.from_db_row)
+      |> list.map(db.from_row)
       |> item.todos_to_json
       |> wisp.json_response(200)
     }
@@ -46,7 +47,7 @@ pub fn post_create_item(req: Request, ctx: Context) {
       case data.rows {
         [row] -> {
           row
-          |> item.from_db_row_insert()
+          |> db.from_row_insert()
           |> item.todo_to_json
           |> wisp.json_response(201)
         }
@@ -73,7 +74,7 @@ pub fn delete_item(_req: Request, ctx: Context, item_id: String) {
       case data.rows {
         [row] -> {
           row
-          |> item.from_db_row_delete()
+          |> db.from_row_delete()
           |> item.todo_to_json
           |> wisp.json_response(200)
         }
@@ -110,7 +111,7 @@ pub fn patch_item(req: Request, ctx: Context, item_id: String) {
       case data.rows {
         [row] -> {
           row
-          |> item.from_db_row_update()
+          |> db.from_row_update()
           |> item.todo_to_json
           |> wisp.json_response(200)
         }

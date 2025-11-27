@@ -1,7 +1,7 @@
-wisp_lustre_template
-====================
+# wisp_lustre_template
 
 A full-stack web application template built with [Gleam](https://gleam.run/), featuring:
+
 - **Backend**: [Wisp](https://hexdocs.pm/wisp/) web framework running on Erlang/OTP
 - **Frontend**: [Lustre](https://hexdocs.pm/lustre/) reactive UI framework compiled to JavaScript
 - **Database**: PostgreSQL with [pog](https://hexdocs.pm/pog/) for database access
@@ -9,12 +9,16 @@ A full-stack web application template built with [Gleam](https://gleam.run/), fe
 
 ## Project Structure
 
+- `common/` - Shared Gleam library (multi-target)
+  - Shared data models and types
+  - JSON encoders/decoders
+  - Business logic used by both frontend and backend
+  - Example: `Item` type with status management
 - `server/` - Backend Gleam project (Erlang target)
   - REST API endpoints
   - Database migrations with dbmate
   - SQL query generation with Squirrel
   - Example routes for todo items
-  
 - `ui/` - Frontend Gleam project (JavaScript target)
   - Lustre-based reactive UI
   - HTTP client using `lustre_http`
@@ -42,6 +46,7 @@ PORT=9999
 ```
 
 Make sure PostgreSQL is installed and running, and create a database for your application:
+
 ```bash
 createdb database_name
 ```
@@ -118,7 +123,7 @@ The template includes example todo item endpoints:
 cd server
 gleam test
 
-# Frontend tests  
+# Frontend tests
 cd ui
 gleam test
 ```

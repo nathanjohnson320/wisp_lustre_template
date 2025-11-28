@@ -1,5 +1,5 @@
 {
-  "name": "uii",
+  "name": "ui",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -9,7 +9,11 @@
     "preview": "vite preview"
   },
   "devDependencies": {
-    "vite": "^4.4.5",
-    "vite-gleam": "^0.4.2"
+    "vite": "^7.2.4",
+    "vite-gleam": "^1.7.1"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.1.17",
+    "tailwindcss": "^4.1.17"
   }
 }

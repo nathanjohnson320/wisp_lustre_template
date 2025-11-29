@@ -1,5 +1,5 @@
 import config.{type Config}
-import design/terminal.{button, menu, menu_item, shell}
+import design/terminal.{button, menu, menu_item, shell, top_bar}
 import lustre/attribute.{class}
 import lustre/effect.{type Effect}
 import lustre/element.{type Element, text}
@@ -36,7 +36,7 @@ pub fn update(msg: Msg, model: Model) -> #(Model, Effect(Msg)) {
 
 pub fn view(model: Model) -> Element(Msg) {
   shell([class("p-4")], [
-    html.div([], [button([], "Terminal Button")]),
+    top_bar("Terminal UI", NoOp, NoOp, NoOp),
     html.div([], [
       menu(
         [event.on_click(ToggleMenu)],
@@ -45,5 +45,6 @@ pub fn view(model: Model) -> Element(Msg) {
         model.menu_open,
       ),
     ]),
+    html.div([], [button([], "Terminal Button")]),
   ])
 }

@@ -54,11 +54,7 @@ pub fn menu_item(
   attributes: List(Attribute(msg)),
   label: String,
 ) -> Element(msg) {
-  html.li(
-    [
-      class("padding-2 hover:bg-(--terminal-green) hover:text-black"),
-      ..attributes
-    ],
-    [html.text(label)],
-  )
+  html.li([class("padding-2 hover:bg-(--terminal-dark)"), ..attributes], [
+    html.text(label),
+  ])
 }

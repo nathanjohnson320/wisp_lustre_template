@@ -1,1 +1,60 @@
 @import "tailwindcss";
+
+
+/* Terminal Design Global Styles */
+@font-face {
+    font-family: 'VT323';
+    src: url('fonts/VT323-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+.crt {
+    background-color: #000000;
+    color: #00ff00;
+    /* font-family: 'VT323', monospace; */
+    text-shadow: 0 0 4px rgba(0, 255, 0, 0.7);
+}
+
+.crt::before {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: repeating-linear-gradient(to bottom, rgba(0, 255, 0, 0.05) 0px, rgba(0, 255, 0, 0.05) 1px, transparent 2px, transparent 4px);
+}
+
+.crt::after {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at center, transparent 60%, rgba(0, 0, 0, 0.4) 100%);
+    mix-blend-mode: multiply;
+}
+
+.crt-aberration::before,
+.crt-aberration::after {
+    content: attr(data-text);
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    opacity: 0.25;
+}
+
+.crt-aberration::before {
+    color: #00ff00;
+    transform: translateX(-1px);
+}
+
+.crt-aberration::after {
+    color: #003300;
+    transform: translateX(1px);
+}

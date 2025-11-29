@@ -1,10 +1,10 @@
 import config.{type Config}
 import gleam/list
 import http/item as http
-import lustre/attribute.{autofocus, class, name, placeholder}
+import lustre/attribute.{autofocus, class, href, name, placeholder}
 import lustre/effect.{type Effect}
 import lustre/element.{type Element, text}
-import lustre/element/html.{button, div, form, h1, input, span, svg}
+import lustre/element/html.{a, button, div, form, h1, input, span, svg}
 import lustre/element/svg
 import lustre/event
 import lustre_http.{type HttpError}
@@ -119,6 +119,8 @@ pub fn update(msg: Msg, model: Model) -> #(Model, Effect(Msg)) {
 
 pub fn view(model: Model) -> Element(Msg) {
   div([class("app")], [
+    div([], [a([href("/design/terminal")], [text("Terminal Design")])]),
+
     h1([class("app-title")], [text("Todo App")]),
     todos(model),
   ])

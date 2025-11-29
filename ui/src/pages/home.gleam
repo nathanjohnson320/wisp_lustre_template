@@ -119,7 +119,11 @@ pub fn update(msg: Msg, model: Model) -> #(Model, Effect(Msg)) {
 
 pub fn view(model: Model) -> Element(Msg) {
   div([class("app")], [
-    div([], [a([href("/design/terminal")], [text("Terminal Design")])]),
+    div([], [
+      a([href("/terminal")], [text("Terminal")]),
+      span([], [text(" | ")]),
+      a([href("/design/terminal")], [text("Terminal Design")]),
+    ]),
 
     h1([class("app-title")], [text("Todo App")]),
     todos(model),

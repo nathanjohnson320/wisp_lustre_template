@@ -7,6 +7,7 @@ import lustre/element.{type Element}
 import lustre/element/html
 import modem
 import pages/home
+import pages/terminal
 import pages/terminal_design
 
 // MAIN ------------------------------------------------------------------------
@@ -25,12 +26,14 @@ type Model {
     current_route: Route,
     config: config.Config,
     home: home.Model,
+    terminal: terminal.Model,
     terminal_design: terminal_design.Model,
   )
 }
 
 type Route {
   Home
+  Terminal
   TerminalDesign
   NotFound
 }
@@ -48,6 +51,7 @@ fn init(flags: Flags) -> #(Model, Effect(Msg)) {
       current_route: current_route,
       config: config,
       home: home.init(config),
+      terminal: terminal.init(config),
       terminal_design: terminal_design.init(config),
     ),
     effect.batch([
@@ -60,6 +64,7 @@ fn init(flags: Flags) -> #(Model, Effect(Msg)) {
 fn parse_route(uri: Uri) -> Route {
   case uri.path_segments(uri.path) {
     [] -> Home
+    ["terminal"] -> Terminal
     ["design", ..design] -> {
       case design {
         ["terminal"] -> TerminalDesign
@@ -81,12 +86,14 @@ fn on_route_change(uri: Uri) -> Msg {
 pub opaque type Msg {
   OnRouteChange(Route)
   HomeMsg(home.Msg)
+  TerminalMsg(terminal.Msg)
   TerminalDesignMsg(terminal_design.Msg)
 }
 
 fn route_effect(config: config.Config, route: Route) -> Effect(Msg) {
   case route {
     Home -> effect.map(home.on_load(config), HomeMsg)
+    Terminal -> effect.map(terminal.on_load(config), TerminalMsg)
     TerminalDesign ->
       effect.map(terminal_design.on_load(config), TerminalDesignMsg)
     _ -> effect.none()
@@ -101,6 +108,14 @@ fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
     HomeMsg(home_msg) -> {
       let #(home_model, home_effect) = home.update(home_msg, model.home)
       #(Model(..model, home: home_model), effect.map(home_effect, HomeMsg))
+    }
+    TerminalMsg(terminal_msg) -> {
+      let #(terminal_model, terminal_effect) =
+        terminal.update(terminal_msg, model.terminal)
+      #(
+        Model(..model, terminal: terminal_model),
+        effect.map(terminal_effect, TerminalMsg),
+      )
     }
     TerminalDesignMsg(terminal_design_msg) -> {
       let #(terminal_design_model, terminal_design_effect) =
@@ -121,6 +136,10 @@ fn view(model: Model) -> Element(Msg) {
       model.home
       |> home.view()
       |> element.map(HomeMsg)
+    Terminal ->
+      model.terminal
+      |> terminal.view()
+      |> element.map(TerminalMsg)
     TerminalDesign ->
       model.terminal_design
       |> terminal_design.view()

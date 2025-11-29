@@ -1,5 +1,5 @@
 import config.{type Config}
-import design/terminal.{button, menu, menu_item, shell, tab, tab_group, top_bar}
+import design/terminal.{menu, menu_item, shell, tab, tab_group, top_bar}
 import lustre/attribute.{class}
 import lustre/effect.{type Effect}
 import lustre/element.{type Element}

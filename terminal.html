@@ -1,0 +1,758 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CRT Terminal — Full Demo</title>
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Terminal-style font -->
+  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+
+  <style>
+    /* --- Base / font / sizing --- */
+    :root {
+      --terminal-green: #00ff00;
+      --terminal-dark: #003300;
+      --terminal-bg: #000000;
+    }
+    html,body { height: 100%; }
+    body {
+      font-family: 'VT323', monospace;
+      font-size: 20px;
+      line-height: 1.35;
+      margin: 0;
+      background: var(--terminal-bg);
+      color: var(--terminal-green);
+    }
+
+    /* --- CRT container (curvature + scanlines + glow) --- */
+    .crt {
+      position: relative;
+      overflow: hidden;
+      -webkit-font-smoothing: none;
+      text-shadow: 0 0 4px rgba(0,255,0,0.7);
+      transform: perspective(800px) translateZ(0) scale(1.02);
+    }
+    .crt::before {
+      content: "";
+      pointer-events: none;
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(to bottom,
+        rgba(0,255,0,0.05) 0px,
+        rgba(0,255,0,0.05) 1px,
+        transparent 2px,
+        transparent 4px);
+      z-index: 2;
+    }
+    .crt::after {
+      content: "";
+      pointer-events: none;
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at center,
+        transparent 60%,
+        rgba(0,0,0,0.4) 100%);
+      mix-blend-mode: multiply;
+      z-index: 3;
+    }
+
+    /* Chromatic aberration applied globally (subtle) */
+    .crt-aberration { position: relative; }
+    .crt-aberration::before, .crt-aberration::after {
+      content: attr(data-text);
+      position: absolute;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+      opacity: 0.12;
+      z-index: 5;
+      white-space: pre-wrap;
+    }
+    .crt-aberration::before { color: #00ff99; transform: translateX(-1px); mix-blend-mode: screen; }
+    .crt-aberration::after  { color: #003300;  transform: translateX(1px);  mix-blend-mode: multiply; }
+
+    /* Phosphor glow */
+    @keyframes phosphor {
+      0%   { text-shadow: 0 0 8px rgba(0,255,0,0.65); }
+      50%  { text-shadow: 0 0 18px rgba(0,255,0,0.35); }
+      100% { text-shadow: 0 0 8px rgba(0,255,0,0.65); }
+    }
+    .crt-phosphor { animation: phosphor 1.2s ease-in-out infinite; }
+
+    /* VHS sweep bar (full-screen sweep) */
+    @keyframes vhs-scan { 
+      0%   { opacity: 0; transform: translateY(-100%); }
+      10%  { opacity: 0.38; }
+      50%  { opacity: 0.24; }
+      100% { opacity: 0; transform: translateY(100%); }
+    }
+    .vhs-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      background: linear-gradient(to bottom,
+        rgba(0,255,0,0.12),
+        rgba(0,255,0,0.03));
+      mix-blend-mode: lighten;
+      animation: vhs-scan 1.4s linear infinite;
+      z-index: 100;
+    }
+
+    /* --- Window chrome / main window --- */
+    #mainWindow {
+      width: 70vw;
+      height: 62vh;
+      min-width: 420px;
+      min-height: 260px;
+      background: rgba(0,0,0,0.9);
+      border: 1px solid rgba(0,255,0,0.9);
+      box-shadow: 0 0 18px rgba(0,255,0,0.12);
+      position: absolute;
+      left: calc(50% - 35vw);
+      top: calc(12vh);
+      z-index: 40;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Title bar (drag target) */
+    #titleBar {
+      -webkit-user-select: none;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 10px;
+      border-bottom: 1px solid rgba(0,255,0,0.06);
+      background: rgba(0,0,0,0.6);
+      cursor: grab;
+      z-index: 41;
+    }
+    #titleBar:active { cursor: grabbing; }
+
+    /* Window control buttons */
+    .win-controls button {
+      background: transparent;
+      border: none;
+      color: var(--terminal-green);
+      padding: 4px;
+      font-size: 18px;
+      cursor: pointer;
+    }
+    .win-controls button:hover { color: #baffba; }
+
+    /* Content area */
+    .win-body {
+      display: grid;
+      grid-template-columns: 1fr 2fr 1fr;
+      gap: 12px;
+      padding: 14px;
+      align-items: start;
+      height: 100%;
+      box-sizing: border-box;
+    }
+
+    /* Panels */
+    .panel {
+      border: 1px solid rgba(0,255,0,0.12);
+      padding: 10px;
+      background: rgba(0,0,0,0.7);
+      box-shadow: inset 0 0 14px rgba(0,255,0,0.02);
+      overflow: auto;
+      max-height: calc(100% - 40px);
+    }
+
+    /* File tree */
+    .folder { cursor: pointer; margin: 6px 0; }
+    .folder > ul { display: none; margin-left: 1rem; margin-top: 6px; }
+    .folder.open > ul { display: block; }
+    .folder-line { display: flex; align-items: center; gap: 8px; }
+
+    /* Terminal/editor area */
+    .editor-area { display: flex; flex-direction: column; gap: 8px; height: 100%; }
+    .tabs { display: flex; gap: 6px; margin-bottom: 6px; }
+    .tab { padding: 6px 10px; border: 1px solid rgba(0,255,0,0.15); cursor: pointer; background: rgba(0,0,0,0.35); }
+    .tab.active { background: rgba(0,255,0,0.08); box-shadow: 0 0 8px rgba(0,255,0,0.05) inset; }
+
+    input.cmd {
+      background: transparent;
+      color: var(--terminal-green);
+      border: 1px solid rgba(0,255,0,0.12);
+      padding: 8px;
+      outline: none;
+      width: 100%;
+    }
+
+    textarea.output {
+      background: transparent;
+      color: var(--terminal-green);
+      border: 1px solid rgba(0,255,0,0.06);
+      padding: 10px;
+      resize: none;
+      height: 260px;
+      outline: none;
+      white-space: pre-wrap;
+      font-family: inherit;
+    }
+
+    /* Right panel actions */
+    .actions { display: flex; flex-direction: column; gap: 8px; }
+
+    /* Log panel (under editor) */
+    .log-panel {
+      border: 1px solid rgba(0,255,0,0.06);
+      padding: 8px;
+      background: rgba(0,0,0,0.65);
+      height: 120px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      font-size: 16px;
+    }
+
+    /* Status bar (bottom) */
+    .status-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 8px 12px;
+      border-top: 1px solid rgba(0,255,0,0.06);
+      background: rgba(0,0,0,0.9);
+      color: var(--terminal-green);
+      font-size: 16px;
+      z-index: 60;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-sizing: border-box;
+    }
+
+    /* Minimized bar */
+    #minimizedBar {
+      display: none;
+      position: fixed;
+      bottom: 34px; /* above status-bar */
+      left: 12px;
+      right: 12px;
+      height: 36px;
+      background: rgba(0,0,0,0.95);
+      border: 1px solid rgba(0,255,0,0.9);
+      color: var(--terminal-green);
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      cursor: pointer;
+      z-index: 70;
+    }
+
+    /* Hide utility class */
+    .hidden { display: none !important; }
+
+    /* Minimize / restore animations */
+    @keyframes minimizeAnim {
+      0% { transform: scale(1) translateY(0); opacity: 1; }
+      100% { transform: scale(0.22) translateY(360px); opacity: 0.15; }
+    }
+    @keyframes restoreAnim {
+      0% { transform: scale(0.22) translateY(360px); opacity: 0.15; }
+      100% { transform: scale(1) translateY(0); opacity: 1; }
+    }
+    .minimizing { animation: minimizeAnim 0.42s ease forwards; transform-origin: center bottom; }
+    .restoring { animation: restoreAnim 0.42s ease forwards; transform-origin: center bottom; }
+
+    /* Resize handles (invisible) */
+    .resize-handle {
+      position: absolute;
+      z-index: 50;
+      background: transparent;
+    }
+    .handle-n { top: -4px; left: 0; right: 0; height: 8px; cursor: n-resize; }
+    .handle-s { bottom: -4px; left: 0; right: 0; height: 8px; cursor: s-resize; }
+    .handle-e { right: -4px; top: 0; bottom: 0; width: 8px; cursor: e-resize; }
+    .handle-w { left: -4px; top: 0; bottom: 0; width: 8px; cursor: w-resize; }
+
+    .handle-ne { top: -6px; right: -6px; width: 14px; height: 14px; cursor: ne-resize; }
+    .handle-nw { top: -6px; left: -6px; width: 14px; height: 14px; cursor: nw-resize; }
+    .handle-se { bottom: -6px; right: -6px; width: 14px; height: 14px; cursor: se-resize; }
+    .handle-sw { bottom: -6px; left: -6px; width: 14px; height: 14px; cursor: sw-resize; }
+
+    /* Modal */
+    .modal-bg {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 120;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal {
+      background: rgba(0,0,0,0.98);
+      border: 2px solid rgba(0,255,0,0.95);
+      padding: 18px;
+      min-width: 320px;
+      text-align: center;
+      color: var(--terminal-green);
+    }
+    .modal button {
+      background: transparent;
+      color: var(--terminal-green);
+      border: 1px solid rgba(0,255,0,0.6);
+      padding: 6px 12px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    .modal button:hover { background: var(--terminal-green); color: black; }
+  </style>
+</head>
+<body class="crt crt-aberration">
+
+  <!-- VHS sweep (top-layer visual) -->
+  <div class="vhs-bar" aria-hidden="true"></div>
+
+  <!-- Main Window (draggable/resizable) -->
+  <div id="mainWindow" class="crt-phosphor" role="dialog" aria-label="Terminal window">
+
+    <!-- Title bar (drag target) -->
+    <div id="titleBar">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="color:#99ff99;font-weight:700;">/usr/bin/terminal</span>
+        <span style="color:rgba(0,255,0,0.6);font-size:13px;">●</span>
+      </div>
+
+      <div class="win-controls" style="display:flex;gap:6px;align-items:center;">
+        <!-- Minimize / Maximize / Close -->
+        <button id="minimizeBtn" title="Minimize">🗕</button>
+        <button id="maximizeBtn" title="Maximize">🗖</button>
+        <button id="closeBtn" title="Close">🗙</button>
+      </div>
+    </div>
+
+    <!-- Resize handles -->
+    <div class="resize-handle handle-n"></div>
+    <div class="resize-handle handle-s"></div>
+    <div class="resize-handle handle-e"></div>
+    <div class="resize-handle handle-w"></div>
+    <div class="resize-handle handle-ne"></div>
+    <div class="resize-handle handle-nw"></div>
+    <div class="resize-handle handle-se"></div>
+    <div class="resize-handle handle-sw"></div>
+
+    <!-- Window Body -->
+    <div class="win-body">
+
+      <!-- Left: File Tree -->
+      <div class="panel" style="min-width:140px; max-width:220px;">
+        <div style="color:#bfffbf; margin-bottom:8px;">Files</div>
+
+        <ul style="padding-left:0; list-style:none; margin:0;">
+          <li class="folder">
+            <div class="folder-line">▶ <span style="margin-left:6px;">src</span></div>
+            <ul>
+              <li style="margin:6px 0;">main.ex</li>
+              <li style="margin:6px 0;">utils.ex</li>
+            </ul>
+          </li>
+
+          <li class="folder">
+            <div class="folder-line">▶ <span style="margin-left:6px;">assets</span></div>
+            <ul>
+              <li style="margin:6px 0;">style.css</li>
+              <li style="margin:6px 0;">logo.png</li>
+            </ul>
+          </li>
+
+          <li style="margin:6px 0;">config.exs</li>
+          <li style="margin:6px 0;">README.md</li>
+        </ul>
+      </div>
+
+      <!-- Middle: Editor / Terminal -->
+      <div style="display:flex; flex-direction:column; gap:8px;">
+
+        <!-- Tabs -->
+        <div class="tabs" role="tablist" aria-label="Open files">
+          <div class="tab active" data-file="main.ex">main.ex</div>
+          <div class="tab" data-file="utils.ex">utils.ex</div>
+          <div class="tab" data-file="config.exs">config.exs</div>
+        </div>
+
+        <!-- Terminal input / output -->
+        <div class="panel editor-area" style="min-width:320px;">
+          <div>
+            <input class="cmd" id="commandInput" placeholder="> enter command..." aria-label="Command input" />
+          </div>
+
+          <textarea class="output" id="outputArea" readonly aria-label="Terminal output">System Ready.
+&gt; Listening for commands...
+&gt; Type 'help' for a list of commands.</textarea>
+
+          <div class="log-panel" id="logPanel" aria-live="polite">[Log Panel] Ready.</div>
+        </div>
+      </div>
+
+      <!-- Right: Actions / Prompt -->
+      <div class="panel actions" style="min-width:160px; max-width:220px;">
+        <div style="color:#bfffbf; margin-bottom:8px;">Actions</div>
+        <button onclick="runCommand()" class="px-3 py-2 border border-green-400">Run Command</button>
+        <button onclick="clearOutput()" class="px-3 py-2 border border-green-400">Clear Output</button>
+
+        <div style="margin-top:12px; color:#bfffbf; margin-bottom:6px;">Prompt</div>
+        <div>Awaiting next action...</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Minimized bar (restores main window) -->
+  <div id="minimizedBar" title="Click to restore">▮ Terminal (click to restore)</div>
+
+  <!-- Menu bar (top, outside the window) -->
+  <nav style="display:flex; gap:18px; padding:12px; border-bottom:1px solid rgba(0,255,0,0.06);">
+    <ul style="display:flex; gap:16px; list-style:none; margin:0; padding:0;">
+      <li class="menu-item" style="position:relative;">File
+        <ul class="menu-dropdown" style="display:none; position:absolute; top:100%; left:0; background:rgba(0,0,0,0.95); border:1px solid #00ff00; min-width:120px; z-index:200;">
+          <li style="padding:8px 12px; cursor:pointer;" onclick="addLog('New file created')">New</li>
+          <li style="padding:8px 12px; cursor:pointer;" onclick="addLog('Open file')">Open</li>
+          <li style="padding:8px 12px; cursor:pointer;" onclick="addLog('Saved')">Save</li>
+          <li style="padding:8px 12px; cursor:pointer;" onclick="showModal('Exiting...')">Exit</li>
+        </ul>
+      </li>
+
+      <li class="menu-item" style="position:relative;">Edit
+        <ul class="menu-dropdown" style="display:none; position:absolute; top:100%; left:0; background:rgba(0,0,0,0.95); border:1px solid #00ff00; min-width:120px; z-index:200;">
+          <li style="padding:8px 12px; cursor:pointer;">Undo</li>
+          <li style="padding:8px 12px; cursor:pointer;">Redo</li>
+          <li style="padding:8px 12px; cursor:pointer;">Cut</li>
+          <li style="padding:8px 12px; cursor:pointer;">Copy</li>
+        </ul>
+      </li>
+
+      <li class="menu-item" style="position:relative;">View
+        <ul class="menu-dropdown" style="display:none; position:absolute; top:100%; left:0; background:rgba(0,0,0,0.95); border:1px solid #00ff00; min-width:120px; z-index:200;">
+          <li style="padding:8px 12px; cursor:pointer;" onclick="zoomIn()">Zoom In</li>
+          <li style="padding:8px 12px; cursor:pointer;" onclick="zoomOut()">Zoom Out</li>
+          <li style="padding:8px 12px; cursor:pointer;">Fullscreen</li>
+        </ul>
+      </li>
+
+      <li class="menu-item" style="position:relative;">Terminal
+        <ul class="menu-dropdown" style="display:none; position:absolute; top:100%; left:0; background:rgba(0,0,0,0.95); border:1px solid #00ff00; min-width:140px; z-index:200;">
+          <li style="padding:8px 12px; cursor:pointer;" onclick="addLog('New terminal')">New Terminal</li>
+          <li style="padding:8px 12px; cursor:pointer;" onclick="addLog('Close terminal')">Close Terminal</li>
+        </ul>
+      </li>
+
+      <li class="menu-item" style="position:relative;">Help
+        <ul class="menu-dropdown" style="display:none; position:absolute; top:100%; left:0; background:rgba(0,0,0,0.95); border:1px solid #00ff00; min-width:120px; z-index:200;">
+          <li style="padding:8px 12px; cursor:pointer;" onclick="showModal('Documentation not available in demo')">Documentation</li>
+          <li style="padding:8px 12px; cursor:pointer;" onclick="showModal('CRT Terminal Demo — v1')">About</li>
+        </ul>
+      </li>
+    </ul>
+  </nav>
+
+  <!-- Status bar -->
+  <div class="status-bar">
+    <div id="statusText">-- INSERT -- | Line 1, Col 1</div>
+    <div style="opacity:0.85;">VT323 · CRT Theme</div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-bg" id="modalBg" role="dialog" aria-modal="true">
+    <div class="modal">
+      <p id="modalText">Alert</p>
+      <button onclick="closeModal()">OK</button>
+    </div>
+  </div>
+
+  <script>
+    /* ---------- Utility: log panel ---------- */
+    function addLog(msg) {
+      const panel = document.getElementById('logPanel');
+      const now = new Date().toLocaleTimeString();
+      panel.textContent += `\n[${now}] ${msg}`;
+      panel.scrollTop = panel.scrollHeight;
+    }
+
+    /* ---------- Commands ---------- */
+    function runCommand() {
+      const input = document.getElementById('commandInput');
+      const out = document.getElementById('outputArea');
+      const cmd = input.value.trim();
+      if (!cmd) {
+        addLog('No command entered.');
+        return;
+      }
+      addLog('> ' + cmd);
+      out.textContent += '\\n> ' + cmd + '\\n' + 'Command executed (simulated).';
+      input.value = '';
+      out.scrollTop = out.scrollHeight;
+      // demo: show modal for a specific fake command
+      if (cmd === 'alert') showModal('You triggered an alert command.');
+    }
+    function clearOutput() {
+      document.getElementById('outputArea').textContent = '';
+      addLog('Output cleared.');
+    }
+
+    /* ---------- Modal ---------- */
+    function showModal(txt) {
+      document.getElementById('modalText').textContent = txt;
+      document.getElementById('modalBg').style.display = 'flex';
+      addLog('Modal shown: ' + txt);
+    }
+    function closeModal() {
+      document.getElementById('modalBg').style.display = 'none';
+    }
+
+    /* ---------- Collapsible folders ---------- */
+    document.querySelectorAll('.folder').forEach(folder => {
+      folder.addEventListener('click', (e) => {
+        e.stopPropagation();
+        folder.classList.toggle('open');
+        const arrowEl = folder.querySelector('.folder-line');
+        const open = folder.classList.contains('open');
+        // update arrow text node (first child contains arrow symbol)
+        const txt = arrowEl.textContent.trim();
+        if (open) {
+          arrowEl.innerHTML = '▼ <span style="margin-left:6px;">' + txt.slice(1).trim() + '</span>';
+        } else {
+          arrowEl.innerHTML = '▶ <span style="margin-left:6px;">' + txt.slice(1).trim() + '</span>';
+        }
+      });
+    });
+
+    /* ---------- Menu dropdowns ---------- */
+    document.querySelectorAll('.menu-item').forEach(menu => {
+      menu.addEventListener('click', (e) => {
+        e.stopPropagation();
+        menu.classList.toggle('open');
+        // close others
+        document.querySelectorAll('.menu-item').forEach(m => { if (m !== menu) m.classList.remove('open'); });
+        // toggle menu-dropdown visibility
+        const dd = menu.querySelector('.menu-dropdown');
+        if (dd) dd.style.display = menu.classList.contains('open') ? 'block' : 'none';
+      });
+    });
+    // click outside => close menus
+    document.addEventListener('click', () => {
+      document.querySelectorAll('.menu-item').forEach(menu => {
+        menu.classList.remove('open');
+        const dd = menu.querySelector('.menu-dropdown');
+        if (dd) dd.style.display = 'none';
+      });
+    });
+
+    /* ---------- Tabs ---------- */
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        addLog('Switched to ' + tab.textContent);
+      });
+    });
+
+    /* ---------- Zoom helpers (view menu) ---------- */
+    let baseFontSize = 20;
+    function zoomIn() { baseFontSize = Math.min(28, baseFontSize + 2); document.body.style.fontSize = baseFontSize + 'px'; addLog('Zoom in'); }
+    function zoomOut() { baseFontSize = Math.max(12, baseFontSize - 2); document.body.style.fontSize = baseFontSize + 'px'; addLog('Zoom out'); }
+
+    /* ---------- Minimize / Restore / Close (X11 behavior) ---------- */
+    const win = document.getElementById('mainWindow');
+    const title = document.getElementById('titleBar');
+    const minimizeBtn = document.getElementById('minimizeBtn');
+    const maximizeBtn = document.getElementById('maximizeBtn');
+    const closeBtn = document.getElementById('closeBtn');
+    const minimizedBar = document.getElementById('minimizedBar');
+
+    let isMinimized = false;
+    let isMaximized = false;
+    let isClosed = false;
+    let savedBounds = null;
+
+    minimizeBtn.addEventListener('click', () => {
+      if (isMinimized) return;
+      // animate shrink then hide
+      win.classList.remove('restoring');
+      win.classList.add('minimizing');
+      setTimeout(() => {
+        win.classList.add('hidden');
+        minimizedBar.style.display = 'flex';
+        isMinimized = true;
+      }, 420);
+    });
+
+    minimizedBar.addEventListener('click', () => {
+      if (isClosed) {
+        // reopen closed window
+        win.classList.remove('hidden');
+        minimizedBar.style.display = 'none';
+        isClosed = false;
+        isMinimized = false;
+        addLog('Window reopened (from closed state).');
+        return;
+      }
+      if (!isMinimized) return;
+      win.classList.remove('hidden');
+      win.classList.remove('minimizing');
+      win.classList.add('restoring');
+      minimizedBar.style.display = 'none';
+      setTimeout(() => {
+        win.classList.remove('restoring');
+        isMinimized = false;
+      }, 420);
+    });
+
+    maximizeBtn.addEventListener('click', () => {
+      if (!isMaximized) {
+        // save current bounds
+        const rect = win.getBoundingClientRect();
+        savedBounds = { left: rect.left + 'px', top: rect.top + 'px', width: rect.width + 'px', height: rect.height + 'px' };
+        win.style.left = '0px';
+        win.style.top = '0px';
+        win.style.width = '100vw';
+        win.style.height = '100vh';
+        win.classList.add('maximized');
+        isMaximized = true;
+        addLog('Window maximized');
+      } else {
+        // restore
+        if (savedBounds) {
+          win.style.left = savedBounds.left;
+          win.style.top = savedBounds.top;
+          win.style.width = savedBounds.width;
+          win.style.height = savedBounds.height;
+        }
+        win.classList.remove('maximized');
+        isMaximized = false;
+        addLog('Window restored');
+      }
+    });
+
+    closeBtn.addEventListener('click', () => {
+      win.classList.add('hidden');
+      minimizedBar.style.display = 'flex';
+      minimizedBar.textContent = '▮ Terminal (closed — click to reopen)';
+      isClosed = true;
+      isMinimized = false;
+      addLog('Window closed');
+    });
+
+    /* ---------- Dragging (title bar) ---------- */
+    let dragging = false;
+    let dragOffsetX = 0;
+    let dragOffsetY = 0;
+
+    title.addEventListener('mousedown', (e) => {
+      if (isMaximized) return; // don't drag when maximized
+      dragging = true;
+      const rect = win.getBoundingClientRect();
+      dragOffsetX = e.clientX - rect.left;
+      dragOffsetY = e.clientY - rect.top;
+      title.style.cursor = 'grabbing';
+    });
+    document.addEventListener('mousemove', (e) => {
+      if (!dragging) return;
+      win.style.left = Math.max(6, e.clientX - dragOffsetX) + 'px';
+      win.style.top = Math.max(6, e.clientY - dragOffsetY) + 'px';
+    });
+    document.addEventListener('mouseup', () => {
+      dragging = false;
+      title.style.cursor = 'grab';
+    });
+
+    /* ---------- Resizing ---------- */
+    function makeResizable(handleSelector, direction) {
+      const handle = document.querySelector(handleSelector);
+      if (!handle) return;
+      handle.addEventListener('mousedown', (ev) => {
+        ev.preventDefault();
+        const startRect = win.getBoundingClientRect();
+        const startX = ev.clientX;
+        const startY = ev.clientY;
+
+        function onMove(e) {
+          const dx = e.clientX - startX;
+          const dy = e.clientY - startY;
+
+          if (direction.includes('e')) {
+            win.style.width = Math.max(320, startRect.width + dx) + 'px';
+          }
+          if (direction.includes('s')) {
+            win.style.height = Math.max(220, startRect.height + dy) + 'px';
+          }
+          if (direction.includes('w')) {
+            win.style.left = (startRect.left + dx) + 'px';
+            win.style.width = Math.max(320, startRect.width - dx) + 'px';
+          }
+          if (direction.includes('n')) {
+            win.style.top = (startRect.top + dy) + 'px';
+            win.style.height = Math.max(120, startRect.height - dy) + 'px';
+          }
+        }
+
+        function onUp() {
+          document.removeEventListener('mousemove', onMove);
+          document.removeEventListener('mouseup', onUp);
+        }
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+      });
+    }
+
+    makeResizable('.handle-e', 'e');
+    makeResizable('.handle-s', 's');
+    makeResizable('.handle-w', 'w');
+    makeResizable('.handle-n', 'n');
+    makeResizable('.handle-se', 'se');
+    makeResizable('.handle-sw', 'sw');
+    makeResizable('.handle-ne', 'ne');
+    makeResizable('.handle-nw', 'nw');
+
+    /* ---------- keyboard: focus input & history (simple) ---------- */
+    const cmdInput = document.getElementById('commandInput');
+    const history = [];
+    let historyIdx = -1;
+    cmdInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        runCommand();
+        history.unshift(cmdInput.value);
+        historyIdx = -1;
+      } else if (e.key === 'ArrowUp') {
+        if (history.length && historyIdx < history.length - 1) {
+          historyIdx++;
+          cmdInput.value = history[historyIdx] || '';
+        }
+      } else if (e.key === 'ArrowDown') {
+        if (historyIdx > 0) {
+          historyIdx--;
+          cmdInput.value = history[historyIdx] || '';
+        } else {
+          historyIdx = -1;
+          cmdInput.value = '';
+        }
+      }
+    });
+
+    /* ---------- Accessibility: close modal with Escape ---------- */
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeModal();
+      }
+    });
+
+    /* ---------- Initialize small demo logs ---------- */
+    addLog('CRT Terminal demo loaded');
+    addLog('Tip: try dragging the title bar, resizing edges, minimize/maximize.');
+  </script>
+</body>
+</html>

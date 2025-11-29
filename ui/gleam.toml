@@ -21,6 +21,7 @@ modem = "~> 2.1"
 lustre_http = ">= 1.0.0 and < 2.0.0"
 gleam_json = ">= 3.0.0 and < 4.0.0"
 gleam_http = ">= 4.0.0 and < 5.0.0"
+keyboard_shortcuts = ">= 0.9.2 and < 1.0.0"
 
 [dev-dependencies]
 gleeunit = ">= 1.0.0 and < 2.0.0"

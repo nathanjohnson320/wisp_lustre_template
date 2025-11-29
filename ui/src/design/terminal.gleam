@@ -1,4 +1,4 @@
-import lustre/attribute.{type Attribute, class, classes}
+import lustre/attribute.{type Attribute, class}
 import lustre/element.{type Element}
 import lustre/element/html
 
@@ -13,24 +13,16 @@ pub fn shell(
   attributes: List(Attribute(msg)),
   children: List(Element(msg)),
 ) -> Element(msg) {
-  html.div([class("crt font-terminal w-full h-dvh"), ..attributes], children)
+  html.div([class("crt font-[VT323] w-full h-dvh"), ..attributes], children)
 }
 
 /// A button styled to look like a terminal button.
 pub fn button(attributes: List(Attribute(msg)), label: String) -> Element(msg) {
   html.button(
     [
-      classes([
-        #("bg-black", True),
-        #("text-" <> terminal_green, True),
-        #("border", True),
-        #("border-" <> terminal_green, True),
-        #("px-3", True),
-        #("py-2", True),
-        #("hover:bg-" <> terminal_green, True),
-        #("hover:text-black", True),
-        #("transition", True),
-      ]),
+      class(
+        "bg-black text-(--terminal-green) border border-(--terminal-green) px-3 py-2 hover:bg-(--terminal-green) hover:text-black transition",
+      ),
       ..attributes
     ],
     [html.text(label)],

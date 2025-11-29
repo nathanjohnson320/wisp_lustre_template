@@ -9,10 +9,17 @@
     font-style: normal;
 }
 
+
+:root {
+  --terminal-green: #00ff00;
+  --terminal-dark: #003300;
+  --terminal-bg: #000000;
+  --terminal-light-green: #33ff33;
+}
+
 .crt {
-    background-color: #000000;
-    color: #00ff00;
-    /* font-family: 'VT323', monospace; */
+    background-color: var(--terminal-bg);
+    color: var(--terminal-green);
     text-shadow: 0 0 4px rgba(0, 255, 0, 0.7);
 }
 

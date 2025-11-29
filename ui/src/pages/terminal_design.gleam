@@ -2,7 +2,7 @@ import config.{type Config}
 import design/terminal.{button, menu, menu_item, shell, top_bar}
 import lustre/attribute.{class}
 import lustre/effect.{type Effect}
-import lustre/element.{type Element, text}
+import lustre/element.{type Element}
 import lustre/element/html
 import lustre/event
 

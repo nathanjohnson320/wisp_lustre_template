@@ -43,7 +43,7 @@ pub fn menu(
         html.ul(
           [
             class(
-              "absolute top-full left-0 bg-(--terminal-bg) border border-(--terminal-green) min-w-32 z-10",
+              "absolute top-full left-0 bg-[rgba(0,0,0,0.95)] border border-(--terminal-green) min-w-32 z-10",
             ),
             classes([#("block", open), #("hidden", !open)]),
           ],
@@ -59,7 +59,7 @@ pub fn menu_item(
   attributes: List(Attribute(msg)),
   label: String,
 ) -> Element(msg) {
-  html.li([class("padding-2 hover:bg-(--terminal-dark)"), ..attributes], [
+  html.li([class("px-2 py-1 hover:bg-(--terminal-dark)"), ..attributes], [
     html.text(label),
   ])
 }

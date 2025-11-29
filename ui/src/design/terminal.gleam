@@ -105,3 +105,32 @@ pub fn top_bar(
     ],
   )
 }
+
+/// A group of tabs
+pub fn tab_group(
+  attributes: List(Attribute(msg)),
+  tabs: List(Element(msg)),
+) -> Element(msg) {
+  html.div([class("flex gap-2 mb-4"), ..attributes], tabs)
+}
+
+/// A single tab for use inside a tab group
+pub fn tab(
+  attributes: List(Attribute(msg)),
+  label: String,
+  active: Bool,
+) -> Element(msg) {
+  //   .tab { padding: 0.5rem 1rem; border: 1px solid #00ff00; cursor: pointer; background: black; }
+  // .tab.active { background: #003300; }
+  html.div(
+    [
+      classes([
+        #("bg-(--terminal-dark)", active),
+        #("bg-black", !active),
+      ]),
+      class("px-4 py-2 border border-(--terminal-green) cursor-pointer"),
+      ..attributes
+    ],
+    [html.text(label)],
+  )
+}

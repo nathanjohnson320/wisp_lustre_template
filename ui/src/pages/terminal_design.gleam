@@ -1,5 +1,5 @@
 import config.{type Config}
-import design/terminal.{button, menu, menu_item, shell, top_bar}
+import design/terminal.{button, menu, menu_item, shell, tab, tab_group, top_bar}
 import lustre/attribute.{class}
 import lustre/effect.{type Effect}
 import lustre/element.{type Element}
@@ -45,6 +45,6 @@ pub fn view(model: Model) -> Element(Msg) {
         model.menu_open,
       ),
     ]),
-    html.div([], [button([], "Terminal Button")]),
+    tab_group([], [tab([], "Tab 1", True), tab([], "Tab 2", False)]),
   ])
 }

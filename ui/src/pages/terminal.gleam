@@ -6,7 +6,7 @@ import gleam/int
 import lustre/attribute.{aria_label, class, id, role, title}
 import lustre/effect.{type Effect}
 import lustre/element.{type Element}
-import lustre/element/html.{button, div, span, text}
+import lustre/element/html.{button, div, li, nav, span, text, ul}
 import lustre/event
 
 pub type WindowState {
@@ -43,8 +43,8 @@ pub fn init(config: Config) -> Model {
     dragging: False,
     drag_offset_x: 0,
     drag_offset_y: 0,
-    drag_diff_x: 0,
-    drag_diff_y: 0,
+    drag_diff_x: 40,
+    drag_diff_y: 60,
   )
 }
 
@@ -82,8 +82,6 @@ pub fn update(msg: Msg, model: Model) -> #(Model, Effect(Msg)) {
       }
     }
     Dragging(x, y) -> {
-      echo model.dragging
-      echo [x, y]
       case model.dragging {
         False -> #(model, effect.none())
         True -> {
@@ -110,11 +108,12 @@ pub fn view(model: Model) -> Element(Msg) {
 
 fn main_window(model: Model) -> Element(Msg) {
   shell([], [
+    navbar(model),
     div(
       [
         id(model.window_id),
         class(
-          "w-[70vw] h-[62vh] min-w-[420px] min-h-[260px] bg-[rgba(0,0,0,0.9)] border border-[rgba(0,255,0,0.9)] shadow-[0_0_18px_rgba(0,255,0,0.12)] absolute left-[calc(50%-35vw)] top-[12vh] z-40 overflow-hidden flex flex-col ",
+          "w-[70vw] h-[62vh] min-w-[420px] min-h-[260px] bg-[rgba(0,0,0,0.9)] border border-[rgba(0,255,0,0.9)] shadow-[0_0_18px_rgba(0,255,0,0.12)] absolute z-40 overflow-hidden flex flex-col ",
         ),
         attribute.styles([
           #("left", int.to_string(model.drag_diff_x) <> "px"),
@@ -200,6 +199,108 @@ fn main_window(model: Model) -> Element(Msg) {
         window_body(model),
       ],
     ),
+  ])
+}
+
+fn navbar(_model: Model) -> Element(Msg) {
+  nav([class("flex gap-[18px] p-3 border-b border-green-200/6")], [
+    ul([class("flex gap-4 list-none m-0 p-0")], [
+      li([class("relative menu-item")], [
+        text("File"),
+        ul(
+          [
+            class(
+              "absolute top-full left-0 bg-[rgba(0,0,0,0.95)] border border-[#00ff00] min-w-[120px] z-50 hidden menu-dropdown",
+            ),
+          ],
+          [
+            li([class("p-2 cursor-pointer"), event.on_click(NoOp)], [
+              text("New"),
+            ]),
+            li([class("p-2 cursor-pointer"), event.on_click(NoOp)], [
+              text("Open"),
+            ]),
+            li([class("p-2 cursor-pointer"), event.on_click(NoOp)], [
+              text("Save"),
+            ]),
+            li([class("p-2 cursor-pointer"), event.on_click(NoOp)], [
+              text("Exit"),
+            ]),
+          ],
+        ),
+      ]),
+      li([class("relative menu-item")], [
+        text("Edit"),
+        ul(
+          [
+            class(
+              "absolute top-full left-0 bg-[rgba(0,0,0,0.95)] border border-[#00ff00] min-w-[120px] z-50 hidden menu-dropdown",
+            ),
+          ],
+          [
+            li([class("p-2 cursor-pointer")], [text("Undo")]),
+            li([class("p-2 cursor-pointer")], [text("Redo")]),
+            li([class("p-2 cursor-pointer")], [text("Cut")]),
+            li([class("p-2 cursor-pointer")], [text("Copy")]),
+          ],
+        ),
+      ]),
+      li([class("relative menu-item")], [
+        text("View"),
+        ul(
+          [
+            class(
+              "absolute top-full left-0 bg-[rgba(0,0,0,0.95)] border border-[#00ff00] min-w-[120px] z-50 hidden menu-dropdown",
+            ),
+          ],
+          [
+            li([class("p-2 cursor-pointer"), event.on_click(NoOp)], [
+              text("Zoom In"),
+            ]),
+            li([class("p-2 cursor-pointer"), event.on_click(NoOp)], [
+              text("Zoom Out"),
+            ]),
+            li([class("p-2 cursor-pointer")], [text("Fullscreen")]),
+          ],
+        ),
+      ]),
+      li([class("relative menu-item")], [
+        text("Terminal"),
+        ul(
+          [
+            class(
+              "absolute top-full left-0 bg-[rgba(0,0,0,0.95)] border border-[#00ff00] min-w-[140px] z-50 hidden menu-dropdown",
+            ),
+          ],
+          [
+            li([class("p-2 cursor-pointer"), event.on_click(NoOp)], [
+              text("New Terminal"),
+            ]),
+            li([class("p-2 cursor-pointer"), event.on_click(NoOp)], [
+              text("Close Terminal"),
+            ]),
+          ],
+        ),
+      ]),
+      li([class("relative menu-item")], [
+        text("Help"),
+        ul(
+          [
+            class(
+              "absolute top-full left-0 bg-[rgba(0,0,0,0.95)] border border-[#00ff00] min-w-[120px] z-50 hidden menu-dropdown",
+            ),
+          ],
+          [
+            li([class("p-2 cursor-pointer"), event.on_click(NoOp)], [
+              text("Documentation"),
+            ]),
+            li([class("p-2 cursor-pointer"), event.on_click(NoOp)], [
+              text("About"),
+            ]),
+          ],
+        ),
+      ]),
+    ]),
   ])
 }
 

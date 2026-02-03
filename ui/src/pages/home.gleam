@@ -8,7 +8,7 @@ import lustre/element/html.{button, div, form, h1, input, span, svg}
 import lustre/element/svg
 import lustre/event
 import lustre_http.{type HttpError}
-import models/item.{type Item, Completed, Item, Uncompleted}
+import models/item.{type Item, type ItemStatus, Completed, Item, Uncompleted}
 
 pub type Model {
   Model(config: Config, current_item: Item, items: List(Item))
@@ -118,18 +118,18 @@ pub fn update(msg: Msg, model: Model) -> #(Model, Effect(Msg)) {
 }
 
 pub fn view(model: Model) -> Element(Msg) {
-  div([class("app")], [
-    h1([class("app-title")], [text("Todo App")]),
+  div([class("px-5 mx-auto mt-5 w-full max-w-[512px]")], [
+    h1([class("text-center font-bold text-4xl")], [text("Todo App")]),
     todos(model),
   ])
 }
 
 fn todos(model: Model) -> Element(Msg) {
-  div([class("todos")], [
+  div([class("mt-3.5")], [
     todos_input(model),
-    div([class("todos__inner")], [
+    div([], [
       div(
-        [class("todos__list")],
+        [class("flex flex-col gap-y-2.5 mt-5")],
         model.items
           |> list.map(item),
       ),
@@ -141,7 +141,7 @@ fn todos(model: Model) -> Element(Msg) {
 fn todos_input(model: Model) -> Element(Msg) {
   form(
     [
-      class("add-todo-input"),
+      class("flex w-full"),
       attribute.method("POST"),
       attribute.action("/items/create"),
       event.on_submit(fn(_) { CreateItem }),
@@ -149,7 +149,9 @@ fn todos_input(model: Model) -> Element(Msg) {
     [
       input([
         name("todo_title"),
-        class("add-todo-input__input"),
+        class(
+          "w-full border-none text-gray-900 bg-gray-100/80 px-5 py-2.5 rounded focus:bg-white outline-none",
+        ),
         placeholder("What needs to be done?"),
         autofocus(True),
         attribute.value(model.current_item.title),
@@ -160,56 +162,77 @@ fn todos_input(model: Model) -> Element(Msg) {
 }
 
 fn item(item: Item) -> Element(Msg) {
-  let completed_class: String = {
+  let base_classes =
+    "flex pt-3.5 pb-3.5 px-5 justify-between items-center rounded-lg text-gray-900 bg-gray-200"
+
+  let button_classes = {
     case item.status {
-      Completed -> "todo--completed"
-      Uncompleted -> ""
+      Completed ->
+        "border-2 border-blue-500 bg-blue-500 flex justify-center items-center rounded-full w-5 h-5 text-white cursor-pointer p-0 hover:border-blue-500"
+      Uncompleted ->
+        "border-2 border-gray-500 flex justify-center items-center rounded-full w-5 h-5 text-white cursor-pointer p-0 hover:border-blue-500"
     }
   }
 
-  div([class("todo " <> completed_class)], [
-    div([class("todo__inner")], [
-      button([class("todo__button"), event.on_click(CompleteItem(item.id))], [
-        svg_icon_checked(),
+  let title_classes = {
+    case item.status {
+      Completed -> "ml-2.5 text-gray-500 line-through"
+      Uncompleted -> "ml-2.5"
+    }
+  }
+
+  div([class(base_classes)], [
+    div([class("flex items-center")], [
+      button([class(button_classes), event.on_click(CompleteItem(item.id))], [
+        svg_icon_checked(item.status),
       ]),
-      span([class("todo__title")], [text(item.title)]),
+      span([class(title_classes)], [text(item.title)]),
     ]),
-    button([class("todo__delete"), event.on_click(DeleteItem(item.id))], [
-      svg_icon_delete(),
-    ]),
+    button(
+      [
+        class(
+          "text-gray-500 p-0 border-none cursor-pointer bg-transparent hover:text-gray-900",
+        ),
+        event.on_click(DeleteItem(item.id)),
+      ],
+      [
+        svg_icon_delete(),
+      ],
+    ),
   ])
 }
 
 fn todos_empty() -> Element(t) {
-  div([class("todos__empty")], [])
+  div([class("mt-10 text-center text-blue-50")], [])
 }
 
 fn svg_icon_delete() -> Element(t) {
-  svg(
-    [class("todo__delete-icon"), attribute.attribute("viewBox", "0 0 24 24")],
-    [
-      svg.path([
-        attribute.attribute("fill", "currentColor"),
-        attribute.attribute(
-          "d",
-          "M9,3V4H4V6H5V19A2,2 0 0,0 7,21H17A2,2 0 0,0 19,19V6H20V4H15V3H9M9,8H11V17H9V8M13,8H15V17H13V8Z",
-        ),
-      ]),
-    ],
-  )
+  svg([class("w-5"), attribute.attribute("viewBox", "0 0 24 24")], [
+    svg.path([
+      attribute.attribute("fill", "currentColor"),
+      attribute.attribute(
+        "d",
+        "M9,3V4H4V6H5V19A2,2 0 0,0 7,21H17A2,2 0 0,0 19,19V6H20V4H15V3H9M9,8H11V17H9V8M13,8H15V17H13V8Z",
+      ),
+    ]),
+  ])
 }
 
-fn svg_icon_checked() -> Element(t) {
-  svg(
-    [class("todo__checked-icon"), attribute.attribute("viewBox", "0 0 24 24")],
-    [
-      svg.path([
-        attribute.attribute("fill", "currentColor"),
-        attribute.attribute(
-          "d",
-          "M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z",
-        ),
-      ]),
-    ],
-  )
+fn svg_icon_checked(status: ItemStatus) -> Element(t) {
+  let icon_classes = {
+    case status {
+      Completed -> "w-[15px] block"
+      Uncompleted -> "w-[15px] hidden"
+    }
+  }
+
+  svg([class(icon_classes), attribute.attribute("viewBox", "0 0 24 24")], [
+    svg.path([
+      attribute.attribute("fill", "currentColor"),
+      attribute.attribute(
+        "d",
+        "M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z",
+      ),
+    ]),
+  ])
 }
